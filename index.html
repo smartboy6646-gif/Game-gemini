@@ -2,203 +2,578 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ultimate Stickman Penalty Simulation</title>
+<title>3D Stickman Penalty Tournament</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    body{margin:0;background:#1a1a1a;color:#fff;font-family:'Segoe UI',Arial;text-align:center;overflow:hidden}
-    canvas{background:#2ecc71;display:block;margin:10px auto;border:4px solid #fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-    #ui{padding:15px;min-height:80px;background:rgba(0,0,0,0.8);border-bottom:2px solid #f1c40f}
-    .score{font-size:24px;font-weight:bold;display:flex;justify-content:center;gap:20px;align-items:center}
-    .badge{padding:5px 15px;border-radius:20px;text-transform:uppercase;font-size:14px}
-    .status{color:#f1c40f;margin-top:5px;font-weight:bold;height:20px}
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #0b2e13 0%, #051a0a 100%);
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    overflow-x: hidden;
+}
+#gameContainer {
+    perspective: 1000px;
+    margin: 20px auto;
+    width: 400px;
+    height: 600px;
+}
+#game {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+#ui {
+    padding: 15px;
+    font-size: 16px;
+    min-height: 60px;
+    background: rgba(0, 20, 0, 0.8);
+    border-radius: 10px;
+    margin: 20px auto;
+    max-width: 800px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+.teamButton {
+    margin: 6px;
+    padding: 8px 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+.teamButton:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+}
+h3 {
+    font-size: 28px;
+    margin: 20px 0;
+    text-shadow: 0 2px 10px rgba(0,255,100,0.5);
+    background: linear-gradient(to right, #00ff88, #00ccff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px auto;
+    max-width: 800px;
+    background: rgba(0, 40, 0, 0.6);
+    padding: 15px;
+    border-radius: 10px;
+}
 </style>
 </head>
 <body>
 
-<div id="ui">
-    <div id="round-name" style="color:#aaa;margin-bottom:5px">LOADING TOURNAMENT...</div>
-    <div class="score" id="scoreboard"></div>
-    <div class="status" id="feedback"></div>
+<h3>⚽ 3D PENALTY TOURNAMENT ⚽</h3>
+<div id="ui"></div>
+<div class="stats" id="stats"></div>
+<div id="gameContainer">
+    <canvas id="game" width="400" height="600"></canvas>
 </div>
-<canvas id="game" width="360" height="500"></canvas>
 
 <script>
-const c=document.getElementById("game"),ctx=c.getContext("2d"),ui=document.getElementById("ui");
-const feedback=document.getElementById("feedback");
+const c = document.getElementById("game");
+const ctx = c.getContext("2d");
+const ui = document.getElementById("ui");
+const stats = document.getElementById("stats");
 
-const TEAMS=[
-"Brazil","Argentina","France","Germany","Spain","Portugal","England","Italy",
-"Netherlands","Belgium","Croatia","Uruguay","Mexico","USA","Japan","Korea"
+const TEAMS = [
+    "Brazil", "Argentina", "France", "Germany", "Spain", "Portugal", 
+    "England", "Italy", "Netherlands", "Belgium", "Croatia", "Uruguay",
+    "Mexico", "USA", "Japan", "Korea", "Senegal", "Morocco", "Nigeria",
+    "Ghana", "Cameroon", "Egypt", "Iran", "Saudi", "Australia", "Denmark",
+    "Poland", "Serbia", "Switzerland", "Sweden", "Chile", "Colombia"
 ];
-const ROUNDS={16:"Round of 16",8:"Quarter Final",4:"Semi Final",2:"GRAND FINAL"};
 
-let teamColors={};
-TEAMS.forEach(t=>teamColors[t]=`hsl(${Math.random()*360},75%,55%)`);
+const ROUNDS = {
+    32: "Round of 32", 16: "Round of 16", 
+    8: "Quarter Final", 4: "Semi Final", 
+    2: "Final", 1: "🏆 CHAMPION 🏆"
+};
 
-let roundTeams=shuffle([...TEAMS]),nextRound=[],matchIndex=0;
-let scoreA=0,scoreB=0,kick=0,state="play",msg="";
-
-let ball={x:180,y:380,vx:0,vy:0,z:0,vz:0,move:false};
-let keeper={x:180,y:100,targetX:180};
-
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
-
-function drawField(){
-    // Pitch
-    ctx.fillStyle="#27ae60";ctx.fillRect(0,0,360,500);
-    // Stripes
-    ctx.fillStyle="rgba(0,0,0,0.05)";
-    for(let i=0;i<500;i+=40)ctx.fillRect(0,i,360,20);
-    // Lines
-    ctx.strokeStyle="rgba(255,255,255,0.8)";ctx.lineWidth=3;
-    ctx.strokeRect(60,60,240,120); // Box
-    ctx.strokeRect(120,60,120,50); // Small Box
-    ctx.beginPath();ctx.arc(180,380,3,0,Math.PI*2);ctx.fill(); // Spot
-    // Goal Post
-    ctx.strokeStyle="#fff";ctx.lineWidth=6;
-    ctx.strokeRect(100,55,160,5);
+function shuffle(arr) {
+    for(let i = arr.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
-function drawStickman(x,y,col,isKicking){
-    ctx.strokeStyle=col;ctx.lineWidth=4;
+let teamColors = {};
+TEAMS.forEach(t => teamColors[t] = `hsl(${Math.random() * 360}, 80%, 60%)`);
+
+let roundTeams = [], nextRound = [];
+let matchIndex = 0, matchNo = 1;
+let scoreA = 0, scoreB = 0, kick = 0;
+let sudden = false, state = "select";
+let cameraAngle = 0;
+let cameraZoom = 1;
+let gameTime = 0;
+
+let ball = {x: 200, y: 450, z: 0, vx: 0, vy: 0, vz: 0, move: false, target: 0};
+let keeper = {x: 200, z: 50, dir: 0, jump: 0, saveAnim: 0};
+let stadium = {lights: []};
+
+for(let i = 0; i < 50; i++) {
+    stadium.lights.push({
+        x: Math.random() * 400,
+        y: Math.random() * 200,
+        intensity: Math.random()
+    });
+}
+
+function drawGround() {
+    // 3D field with perspective
+    ctx.fillStyle = "#1a9a3a";
     ctx.beginPath();
-    ctx.arc(x,y-25,9,0,Math.PI*2); // Head
-    ctx.moveTo(x,y-16);ctx.lineTo(x,y+15); // Body
-    if(isKicking){
-        ctx.moveTo(x,y+15);ctx.lineTo(x+15,y+25); // Kicking leg
-    }else{
-        ctx.moveTo(x,y+15);ctx.lineTo(x-10,y+35);
-        ctx.moveTo(x,y+15);ctx.lineTo(x+10,y+35);
-    }
-    ctx.moveTo(x,y-5);ctx.lineTo(x-15,y-15); // Arms
-    ctx.moveTo(x,y-5);ctx.lineTo(x+15,y-15);
+    ctx.moveTo(50, 500);
+    ctx.lineTo(350, 500);
+    ctx.lineTo(320, 300);
+    ctx.lineTo(80, 300);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Field markings
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(80, 300);
+    ctx.lineTo(320, 300);
     ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Goal area 3D effect
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.beginPath();
+    ctx.moveTo(150, 300);
+    ctx.lineTo(250, 300);
+    ctx.lineTo(230, 280);
+    ctx.lineTo(170, 280);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Center circle
+    ctx.beginPath();
+    ctx.arc(200, 400, 20, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Penalty spot with shadow
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(200, 350, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(202, 352, 5, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
 }
 
-function updateSimulation(){
-    if(!ball.move && state==="play"){
-        setTimeout(shoot, 1000);
-        ball.move=true;
+function drawStadium() {
+    // Stadium structure with 3D effect
+    ctx.fillStyle = "rgba(50, 50, 50, 0.8)";
+    ctx.fillRect(0, 0, 400, 200);
+    
+    // Crowd
+    for(let i = 0; i < 100; i++) {
+        let x = Math.random() * 400;
+        let y = Math.random() * 100 + 100;
+        let color = `hsl(${Math.random() * 360}, 70%, ${40 + Math.random() * 30}%)`;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 3, 5);
     }
+    
+    // Flashing lights
+    gameTime += 0.1;
+    stadium.lights.forEach(light => {
+        let bright = (Math.sin(gameTime + light.x * 0.1) + 1) * 0.5;
+        ctx.fillStyle = `rgba(255, 255, 200, ${bright * light.intensity})`;
+        ctx.beginPath();
+        ctx.arc(light.x, light.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+    });
 }
 
-function shoot(){
-    const targets=[110, 180, 250]; // Left, Center, Right
-    let tx = targets[Math.floor(Math.random()*3)] + (Math.random()*40-20);
-    ball.vx=(tx-180)/25;
-    ball.vy=-8;
-    ball.vz=4; // To give it height
-    keeper.targetX = tx; // Keeper follows ball
-}
-
-function resolveShot(){
-    let saved = Math.abs(ball.x - keeper.x) < 25;
-    let goal = ball.x > 100 && ball.x < 260;
-
-    if(goal && !saved){
-        if(kick%2===0) scoreA++; else scoreB++;
-        msg="GOAL!";
-    } else if(saved){
-        msg="SAVED!";
+function drawStickman(x, y, color, isKicking = false, angle = 0) {
+    let kickFrame = Math.sin(gameTime * 10) * 0.5;
+    
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(x + 5, y + 25, 15, 8, angle * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Body with 3D effect
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    
+    // Legs with perspective
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(0, -18);
+    ctx.lineTo(0, 24);
+    ctx.stroke();
+    
+    // Head with 3D effect
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, -18, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(-3, -20, 2, 0, Math.PI * 2); // Left eye
+    ctx.arc(3, -20, 2, 0, Math.PI * 2);  // Right eye
+    ctx.fill();
+    
+    // Arms
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-15, 10);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(15, 10);
+    ctx.stroke();
+    
+    // Legs with kicking animation
+    ctx.beginPath();
+    if(isKicking) {
+        ctx.moveTo(0, 24);
+        ctx.lineTo(20 + kickFrame * 10, 34 + kickFrame * 5);
+        ctx.moveTo(0, 24);
+        ctx.lineTo(-10, 38);
     } else {
-        msg="MISS!";
+        ctx.moveTo(0, 24);
+        ctx.lineTo(-10, 38);
+        ctx.moveTo(0, 24);
+        ctx.lineTo(10, 38);
     }
+    ctx.stroke();
     
-    feedback.textContent = msg;
-    
-    setTimeout(()=>{
-        msg=""; feedback.textContent="";
-        ball={x:180,y:380,vx:0,vy:0,z:0,vz:0,move:false};
-        keeper.x=180; keeper.targetX=180;
-        kick++;
-        checkMatchEnd();
-    }, 1200);
+    ctx.restore();
 }
 
-function checkMatchEnd(){
-    // Standard 5 kicks each
-    if(kick >= 10 && scoreA !== scoreB){
-        finalizeWinner();
-    } else if(kick >= 10 && scoreA === scoreB){
-        // Sudden death logic can be added here
-        finalizeWinner(); 
+function drawGoalkeeper() {
+    let saveAnim = Math.sin(keeper.saveAnim * 5) * 30;
+    
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(keeper.x + 3, 135, 20, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Goalkeeper with diving animation
+    ctx.save();
+    ctx.translate(keeper.x, 110 + keeper.jump);
+    
+    // Body
+    ctx.strokeStyle = "#FFD700";
+    ctx.fillStyle = "#FFD700";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    
+    // Head
+    ctx.beginPath();
+    ctx.arc(0, -18, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Face
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.arc(-4, -20, 2, 0, Math.PI * 2);
+    ctx.arc(4, -20, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Body and limbs
+    ctx.strokeStyle = "#FFD700";
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(0, 20);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-15 + saveAnim * keeper.dir, 15);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(15 + saveAnim * keeper.dir, 15);
+    ctx.moveTo(0, 20);
+    ctx.lineTo(-10, 35);
+    ctx.moveTo(0, 20);
+    ctx.lineTo(10, 35);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    if(keeper.saveAnim > 0) keeper.saveAnim -= 0.1;
+    if(keeper.jump > 0) keeper.jump -= 0.5;
+}
+
+function drawBall() {
+    // Ball with 3D rotation and shadow
+    let rotation = gameTime * 10;
+    
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(ball.x + 3, ball.y + 3, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Ball with hexagon pattern for 3D effect
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(rotation);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1.5;
+    // Hexagon pattern
+    for(let i = 0; i < 6; i++) {
+        let angle = (i * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * 4, Math.sin(angle) * 4);
+        ctx.lineTo(Math.cos(angle + Math.PI/3) * 4, Math.sin(angle + Math.PI/3) * 4);
+        ctx.stroke();
+    }
+    
+    // Highlight
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.beginPath();
+    ctx.arc(-2, -2, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+function shootBall() {
+    ball.move = true;
+    ball.target = [170, 200, 230][Math.floor(Math.random() * 3)];
+    keeper.dir = Math.floor(Math.random() * 3) - 1;
+    keeper.jump = 15;
+    
+    // 3D trajectory
+    ball.vx = (ball.target - 200) / 12;
+    ball.vy = -9;
+    ball.vz = 2;
+}
+
+function updateBall() {
+    if(ball.move) {
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.z += ball.vz;
+        ball.vy += 0.3; // Gravity
+        ball.vz *= 0.95; // Air resistance
+        
+        // Bounce on ground
+        if(ball.y > 450 && ball.vy > 0) {
+            ball.y = 450;
+            ball.vy = -ball.vy * 0.6;
+            ball.vz *= 0.8;
+        }
+        
+        // Check if ball reached goal
+        if(ball.y < 110) {
+            resolveShot();
+        }
+        
+        // Keeper animation during shot
+        keeper.saveAnim = 1;
     }
 }
 
-function finalizeWinner(){
-    let A=roundTeams[matchIndex], B=roundTeams[matchIndex+1];
+function resolveShot() {
+    let saved = Math.abs(ball.target - keeper.x) < 25;
+    
+    if(!saved) {
+        // Goal animation
+        if(kick % 2 === 0) scoreA++;
+        else scoreB++;
+        
+        // Camera shake for goal
+        cameraAngle = 0.1;
+    }
+    
+    kick++;
+    ball.move = false;
+    ball.x = 200; ball.y = 450; ball.z = 0;
+    keeper.x = 200;
+    keeper.saveAnim = 0;
+
+    if(kick >= 10 && scoreA !== scoreB) return endMatch();
+    if(kick >= 10 && scoreA === scoreB) sudden = true;
+    if(sudden && scoreA !== scoreB) return endMatch();
+}
+
+function endMatch() {
+    let A = roundTeams[matchIndex];
+    let B = roundTeams[matchIndex + 1];
     let winner = scoreA > scoreB ? A : B;
     nextRound.push(winner);
+    state = "result";
     
-    setTimeout(()=>{
-        matchIndex+=2;
-        if(matchIndex >= roundTeams.length){
-            roundTeams=[...nextRound];
-            nextRound=[];
-            matchIndex=0;
+    // Celebration animation
+    cameraAngle = 0.2;
+    
+    setTimeout(() => {
+        matchIndex += 2;
+        matchNo++;
+        if(matchIndex >= roundTeams.length) {
+            roundTeams = [...nextRound];
+            nextRound = [];
+            matchIndex = 0;
         }
-        if(roundTeams.length === 1){
-            state="winner";
-        }else{
-            scoreA=0; scoreB=0; kick=0;
+        if(roundTeams.length === 1) {
+            ui.innerHTML = `
+                <div style="font-size: 24px; padding: 20px;">
+                    🏆 CHAMPION 🏆<br>
+                    <span style="color:${teamColors[roundTeams[0]]}; font-size: 32px;">
+                        ${roundTeams[0]}
+                    </span>
+                </div>
+                <button onclick="location.reload()" style="
+                    background: linear-gradient(45deg, #00ff88, #00ccff);
+                    color: #000;
+                    padding: 12px 30px;
+                    border: none;
+                    border-radius: 25px;
+                    font-size: 18px;
+                    cursor: pointer;
+                    margin: 20px;
+                ">Play Again</button>
+            `;
+            state = "end";
+        } else {
+            startMatch();
         }
-    }, 1500);
+        cameraAngle = 0;
+    }, 2500);
 }
 
-function draw(){
-    ctx.clearRect(0,0,360,500);
-    drawField();
+function startMatch() {
+    scoreA = 0; scoreB = 0; kick = 0; sudden = false;
+    state = "play";
+    updateUI();
+}
 
-    if(state==="play"){
-        let A=roundTeams[matchIndex], B=roundTeams[matchIndex+1];
-        document.getElementById("round-name").textContent = ROUNDS[roundTeams.length] || "Tournament";
-        document.getElementById("scoreboard").innerHTML = `
-            <span class="badge" style="background:${teamColors[A]}">${A}</span> 
-            ${scoreA} - ${scoreB} 
-            <span class="badge" style="background:${teamColors[B]}">${B}</span>`;
+function updateUI() {
+    if(state === "play" && roundTeams.length > 1) {
+        let A = roundTeams[matchIndex];
+        let B = roundTeams[matchIndex + 1];
+        
+        ui.innerHTML = `
+            <div style="font-size: 20px; margin-bottom: 10px;">
+                ${ROUNDS[roundTeams.length]}
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <div style="color:${teamColors[A]}; flex: 1; text-align: right; padding-right: 20px;">
+                    <b>${A}</b><br>
+                    <span style="font-size: 28px">${scoreA}</span>
+                </div>
+                <div style="font-size: 24px; padding: 0 20px;">VS</div>
+                <div style="color:${teamColors[B]}; flex: 1; text-align: left; padding-left: 20px;">
+                    <b>${B}</b><br>
+                    <span style="font-size: 28px">${scoreB}</span>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 14px; opacity: 0.8;">
+                Match ${matchNo} • Kick ${kick + 1}/10
+            </div>
+        `;
+    }
+}
 
-        // Draw Player
-        drawStickman(180,410, teamColors[kick%2===0?A:B], ball.move);
-        // Draw Keeper
-        drawStickman(keeper.x, 110, "#fff", false);
-
-        if(ball.move){
-            ball.x+=ball.vx; ball.y+=ball.vy;
-            ball.z+=ball.vz; ball.vz-=0.2; // Gravity effect on ball
-            if(ball.z<0) ball.z=0;
-
-            keeper.x += (keeper.targetX - keeper.x) * 0.12; // Smooth keeper jump
-            
-            if(ball.y < 110){
-                ball.move=false;
-                resolveShot();
-            }
+function draw() {
+    // Clear with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+    gradient.addColorStop(0, "#051a0a");
+    gradient.addColorStop(1, "#0b2e13");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 600);
+    
+    // Apply camera effects
+    ctx.save();
+    ctx.translate(200, 300);
+    ctx.rotate(cameraAngle);
+    ctx.scale(cameraZoom, cameraZoom);
+    ctx.translate(-200, -300);
+    
+    // Camera smoothing
+    cameraAngle *= 0.9;
+    cameraZoom = 1 + Math.sin(gameTime) * 0.02;
+    
+    if(state === "select") {
+        ui.innerHTML = `
+            <div style="font-size: 24px; margin-bottom: 20px;">
+                SELECT YOUR TEAM
+            </div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+        `;
+        
+        let container = ui.querySelector('div:last-child');
+        if(!container) container = ui;
+        
+        shuffle([...TEAMS]).forEach(t => {
+            let b = document.createElement("button");
+            b.className = "teamButton";
+            b.style.background = `linear-gradient(45deg, ${teamColors[t]}, ${teamColors[t]}77)`;
+            b.style.borderColor = teamColors[t];
+            b.textContent = t;
+            b.onclick = () => {
+                roundTeams = shuffle([...TEAMS]);
+                startMatch();
+            };
+            container.appendChild(b);
+        });
+        
+        state = "wait";
+    }
+    
+    if(state === "play") {
+        updateUI();
+        
+        drawStadium();
+        drawGround();
+        
+        // Draw shooter (alternates based on kick)
+        drawStickman(200, 430, teamColors[roundTeams[matchIndex]], kick % 2 === 0, Math.sin(gameTime) * 0.1);
+        drawGoalkeeper();
+        
+        updateBall();
+        drawBall();
+        
+        // Auto shoot after delay
+        if(!ball.move && Math.random() > 0.95) {
+            shootBall();
         }
-        
-        // Ball Shadow
-        ctx.fillStyle="rgba(0,0,0,0.2)";
-        ctx.beginPath();ctx.arc(ball.x,ball.y+10,8,0,Math.PI*2);ctx.fill();
-        // Ball
-        ctx.fillStyle="#fff";
-        ctx.beginPath();ctx.arc(ball.x,ball.y-ball.z,7,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle="#000";ctx.lineWidth=1;ctx.stroke();
-        
-        updateSimulation();
     }
-
-    if(state==="winner"){
-        ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,360,500);
-        ctx.fillStyle="#f1c40f"; ctx.font="bold 30px Arial";
-        ctx.fillText("🏆 CHAMPIONS", 80, 220);
-        ctx.fillStyle="#fff"; ctx.font="bold 40px Arial";
-        ctx.fillText(roundTeams[0], 180 - ctx.measureText(roundTeams[0]).width/2, 280);
-        
-        document.getElementById("round-name").textContent = "TOURNAMENT FINISHED";
-        setTimeout(()=>location.reload(), 5000);
-    }
-
+    
+    ctx.restore();
     requestAnimationFrame(draw);
 }
+
+// Initialize stats display
+stats.innerHTML = `
+    <div>🏟️ Tournament Progress</div>
+    <div>⚽ 32 Teams</div>
+    <div>🎮 Click team to start</div>
+`;
 
 draw();
 </script>
