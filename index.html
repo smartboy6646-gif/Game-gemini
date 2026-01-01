@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ultimate Stickman Penalty Simulation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body{margin:0;background:#1a1a1a;color:#fff;font-family:'Segoe UI',Arial;text-align:center;overflow:hidden}
+    canvas{background:#2ecc71;display:block;margin:10px auto;border:4px solid #fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+    #ui{padding:15px;min-height:80px;background:rgba(0,0,0,0.8);border-bottom:2px solid #f1c40f}
+    .score{font-size:24px;font-weight:bold;display:flex;justify-content:center;gap:20px;align-items:center}
+    .badge{padding:5px 15px;border-radius:20px;text-transform:uppercase;font-size:14px}
+    .status{color:#f1c40f;margin-top:5px;font-weight:bold;height:20px}
+</style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="round-name" style="color:#aaa;margin-bottom:5px">LOADING TOURNAMENT...</div>
+    <div class="score" id="scoreboard"></div>
+    <div class="status" id="feedback"></div>
+</div>
+<canvas id="game" width="360" height="500"></canvas>
+
+<script>
+const c=document.getElementById("game"),ctx=c.getContext("2d"),ui=document.getElementById("ui");
+const feedback=document.getElementById("feedback");
+
+const TEAMS=[
+"Brazil","Argentina","France","Germany","Spain","Portugal","England","Italy",
+"Netherlands","Belgium","Croatia","Uruguay","Mexico","USA","Japan","Korea"
+];
+const ROUNDS={16:"Round of 16",8:"Quarter Final",4:"Semi Final",2:"GRAND FINAL"};
+
+let teamColors={};
+TEAMS.forEach(t=>teamColors[t]=`hsl(${Math.random()*360},75%,55%)`);
+
+let roundTeams=shuffle([...TEAMS]),nextRound=[],matchIndex=0;
+let scoreA=0,scoreB=0,kick=0,state="play",msg="";
+
+let ball={x:180,y:380,vx:0,vy:0,z:0,vz:0,move:false};
+let keeper={x:180,y:100,targetX:180};
+
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+
+function drawField(){
+    // Pitch
+    ctx.fillStyle="#27ae60";ctx.fillRect(0,0,360,500);
+    // Stripes
+    ctx.fillStyle="rgba(0,0,0,0.05)";
+    for(let i=0;i<500;i+=40)ctx.fillRect(0,i,360,20);
+    // Lines
+    ctx.strokeStyle="rgba(255,255,255,0.8)";ctx.lineWidth=3;
+    ctx.strokeRect(60,60,240,120); // Box
+    ctx.strokeRect(120,60,120,50); // Small Box
+    ctx.beginPath();ctx.arc(180,380,3,0,Math.PI*2);ctx.fill(); // Spot
+    // Goal Post
+    ctx.strokeStyle="#fff";ctx.lineWidth=6;
+    ctx.strokeRect(100,55,160,5);
+}
+
+function drawStickman(x,y,col,isKicking){
+    ctx.strokeStyle=col;ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.arc(x,y-25,9,0,Math.PI*2); // Head
+    ctx.moveTo(x,y-16);ctx.lineTo(x,y+15); // Body
+    if(isKicking){
+        ctx.moveTo(x,y+15);ctx.lineTo(x+15,y+25); // Kicking leg
+    }else{
+        ctx.moveTo(x,y+15);ctx.lineTo(x-10,y+35);
+        ctx.moveTo(x,y+15);ctx.lineTo(x+10,y+35);
+    }
+    ctx.moveTo(x,y-5);ctx.lineTo(x-15,y-15); // Arms
+    ctx.moveTo(x,y-5);ctx.lineTo(x+15,y-15);
+    ctx.stroke();
+}
+
+function updateSimulation(){
+    if(!ball.move && state==="play"){
+        setTimeout(shoot, 1000);
+        ball.move=true;
+    }
+}
+
+function shoot(){
+    const targets=[110, 180, 250]; // Left, Center, Right
+    let tx = targets[Math.floor(Math.random()*3)] + (Math.random()*40-20);
+    ball.vx=(tx-180)/25;
+    ball.vy=-8;
+    ball.vz=4; // To give it height
+    keeper.targetX = tx; // Keeper follows ball
+}
+
+function resolveShot(){
+    let saved = Math.abs(ball.x - keeper.x) < 25;
+    let goal = ball.x > 100 && ball.x < 260;
+
+    if(goal && !saved){
+        if(kick%2===0) scoreA++; else scoreB++;
+        msg="GOAL!";
+    } else if(saved){
+        msg="SAVED!";
+    } else {
+        msg="MISS!";
+    }
+    
+    feedback.textContent = msg;
+    
+    setTimeout(()=>{
+        msg=""; feedback.textContent="";
+        ball={x:180,y:380,vx:0,vy:0,z:0,vz:0,move:false};
+        keeper.x=180; keeper.targetX=180;
+        kick++;
+        checkMatchEnd();
+    }, 1200);
+}
+
+function checkMatchEnd(){
+    // Standard 5 kicks each
+    if(kick >= 10 && scoreA !== scoreB){
+        finalizeWinner();
+    } else if(kick >= 10 && scoreA === scoreB){
+        // Sudden death logic can be added here
+        finalizeWinner(); 
+    }
+}
+
+function finalizeWinner(){
+    let A=roundTeams[matchIndex], B=roundTeams[matchIndex+1];
+    let winner = scoreA > scoreB ? A : B;
+    nextRound.push(winner);
+    
+    setTimeout(()=>{
+        matchIndex+=2;
+        if(matchIndex >= roundTeams.length){
+            roundTeams=[...nextRound];
+            nextRound=[];
+            matchIndex=0;
+        }
+        if(roundTeams.length === 1){
+            state="winner";
+        }else{
+            scoreA=0; scoreB=0; kick=0;
+        }
+    }, 1500);
+}
+
+function draw(){
+    ctx.clearRect(0,0,360,500);
+    drawField();
+
+    if(state==="play"){
+        let A=roundTeams[matchIndex], B=roundTeams[matchIndex+1];
+        document.getElementById("round-name").textContent = ROUNDS[roundTeams.length] || "Tournament";
+        document.getElementById("scoreboard").innerHTML = `
+            <span class="badge" style="background:${teamColors[A]}">${A}</span> 
+            ${scoreA} - ${scoreB} 
+            <span class="badge" style="background:${teamColors[B]}">${B}</span>`;
+
+        // Draw Player
+        drawStickman(180,410, teamColors[kick%2===0?A:B], ball.move);
+        // Draw Keeper
+        drawStickman(keeper.x, 110, "#fff", false);
+
+        if(ball.move){
+            ball.x+=ball.vx; ball.y+=ball.vy;
+            ball.z+=ball.vz; ball.vz-=0.2; // Gravity effect on ball
+            if(ball.z<0) ball.z=0;
+
+            keeper.x += (keeper.targetX - keeper.x) * 0.12; // Smooth keeper jump
+            
+            if(ball.y < 110){
+                ball.move=false;
+                resolveShot();
+            }
+        }
+        
+        // Ball Shadow
+        ctx.fillStyle="rgba(0,0,0,0.2)";
+        ctx.beginPath();ctx.arc(ball.x,ball.y+10,8,0,Math.PI*2);ctx.fill();
+        // Ball
+        ctx.fillStyle="#fff";
+        ctx.beginPath();ctx.arc(ball.x,ball.y-ball.z,7,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#000";ctx.lineWidth=1;ctx.stroke();
+        
+        updateSimulation();
+    }
+
+    if(state==="winner"){
+        ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,360,500);
+        ctx.fillStyle="#f1c40f"; ctx.font="bold 30px Arial";
+        ctx.fillText("🏆 CHAMPIONS", 80, 220);
+        ctx.fillStyle="#fff"; ctx.font="bold 40px Arial";
+        ctx.fillText(roundTeams[0], 180 - ctx.measureText(roundTeams[0]).width/2, 280);
+        
+        document.getElementById("round-name").textContent = "TOURNAMENT FINISHED";
+        setTimeout(()=>location.reload(), 5000);
+    }
+
+    requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
