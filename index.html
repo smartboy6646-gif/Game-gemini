@@ -1,224 +1,330 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>3D Penalty Tournament (Fixed Sudden Death)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{margin:0;overflow:hidden;background:#000;font-family:Arial}
-#hud{
-position:fixed;top:8px;width:100%;text-align:center;
-color:#fff;font-size:14px;line-height:1.4
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penalty Shootout Tournament Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .group-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .standings {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .standings th, .standings td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        .standings th {
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+        }
+        .standings tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #knockout, #finalResult {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #advA, #advB {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+            margin-top: 10px;
+        }
+        p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
+    <h1>🏆 Penalty Shootout Tournament Simulator 🏆</h1>
+    <p style="text-align: center;">8 teams, 2 groups, top 2 advance to semis. All simulated! Watch penalties in knockouts.</p>
+    
+    <div id="controls">
+        <button id="startBtn">🚀 Start Tournament</button>
+        <button id="groupABtn" style="display:none;">⚽ Simulate Group A</button>
+        <button id="groupBBtn" style="display:none;">⚽ Simulate Group B</button>
+        <button id="semisBtn" style="display:none;">🥈 Simulate Semifinals</button>
+        <button id="finalBtn" style="display:none;">🥇 Simulate Final</button>
+        <button id="restartBtn" style="display:none;">🔄 Restart Tournament</button>
+    </div>
 
-<div id="hud">Loading Tournament...</div>
+    <div id="status"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script>
-/* ================= BASIC ================= */
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x87ceeb);
+    <div id="groups" style="display:none;">
+        <div class="group-section">
+            <h2>Group A</h2>
+            <div id="resultsA"></div>
+            <table id="tableA" class="standings"></table>
+            <div id="advA"></div>
+        </div>
+        <div class="group-section">
+            <h2>Group B</h2>
+            <div id="resultsB"></div>
+            <table id="tableB" class="standings"></table>
+            <div id="advB"></div>
+        </div>
+    </div>
 
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
-camera.position.set(0,6,12);
-camera.lookAt(0,2,0);
+    <div id="knockout" style="display:none;">
+        <h2>🥈 Semifinals</h2>
+    </div>
 
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-document.body.appendChild(renderer.domElement);
+    <div id="finalResult" style="display:none;">
+        <h2>🥇 Final</h2>
+    </div>
 
-scene.add(new THREE.AmbientLight(0xffffff,0.6));
-const sun=new THREE.DirectionalLight(0xffffff,0.7);
-sun.position.set(5,10,5);
-scene.add(sun);
+    <script>
+        const teams = ['Arsenal', 'Chelsea', 'Liverpool', 'Man City', 'Man Utd', 'Tottenham', 'Everton', 'Newcastle'];
+        let groupA = [], groupB = [], standingsA = [], standingsB = [], semiWinners = [];
 
-/* ================= GROUND ================= */
-const ground=new THREE.Mesh(
- new THREE.PlaneGeometry(40,20),
- new THREE.MeshStandardMaterial({color:0x1f7a3a})
-);
-ground.rotation.x=-Math.PI/2;
-scene.add(ground);
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-/* ================= GOAL ================= */
-const goalMat=new THREE.MeshStandardMaterial({color:0xffffff});
-function goal(w,h,d,x,y,z){
- const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),goalMat);
- g.position.set(x,y,z);scene.add(g);
-}
-goal(6,0.2,0.2,0,3,-8);
-goal(0.2,3,0.2,-3,1.5,-8);
-goal(0.2,3,0.2,3,1.5,-8);
+        function simulateMatch(t1, t2, isKnockout) {
+            const g1 = Math.floor(Math.random() * 6);
+            const g2 = Math.floor(Math.random() * 6);
+            let result = {
+                score: `${g1}-${g2}`,
+                winner: g1 !== g2 ? (g1 > g2 ? t1 : t2) : null,
+                kicks1: null,
+                kicks2: null,
+                pens: null
+            };
+            if (g1 === g2 && isKnockout) {
+                let kicks1 = [];
+                let kicks2 = [];
+                let scored1 = 0;
+                let scored2 = 0;
+                // First 5
+                for (let i = 0; i < 5; i++) {
+                    kicks1.push(Math.random() < 0.75 ? 1 : 0);
+                    kicks2.push(Math.random() < 0.75 ? 1 : 0);
+                    scored1 += kicks1[i];
+                    scored2 += kicks2[i];
+                }
+                // Sudden death
+                while (scored1 === scored2) {
+                    kicks1.push(Math.random() < 0.75 ? 1 : 0);
+                    kicks2.push(Math.random() < 0.75 ? 1 : 0);
+                    scored1 += kicks1[kicks1.length - 1];
+                    scored2 += kicks2[kicks2.length - 1];
+                }
+                result.kicks1 = kicks1;
+                result.kicks2 = kicks2;
+                result.pens = `${scored1}-${scored2}`;
+                result.winner = scored1 > scored2 ? t1 : t2;
+            }
+            return result;
+        }
 
-/* ================= BALL ================= */
-const ball=new THREE.Mesh(
- new THREE.SphereGeometry(0.3,32,32),
- new THREE.MeshStandardMaterial({color:0xffffff})
-);
-scene.add(ball);
+        function updateStanding(standings, t1, g1, t2, g2) {
+            let s1 = standings.find(s => s.team === t1);
+            let s2 = standings.find(s => s.team === t2);
+            s1.played++; s2.played++;
+            s1.gf += g1; s1.ga += g2;
+            s2.gf += g2; s2.ga += g1;
+            s1.gd = s1.gf - s1.ga;
+            s2.gd = s2.gf - s2.ga;
+            if (g1 > g2) {
+                s1.won++; s1.points += 3;
+                s2.lost++;
+            } else if (g2 > g1) {
+                s2.won++; s2.points += 3;
+                s1.lost++;
+            } else {
+                s1.drawn++; s1.points++;
+                s2.drawn++; s2.points++;
+            }
+        }
 
-/* ================= GOALKEEPER ================= */
-const keeper=new THREE.Mesh(
- new THREE.BoxGeometry(1.2,2,0.6),
- new THREE.MeshStandardMaterial({color:0xffd700})
-);
-keeper.position.set(0,1,-7.5);
-scene.add(keeper);
+        function renderTable(standings, tableId) {
+            const table = document.getElementById(tableId);
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+            standings.forEach((s, i) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${i + 1}</td><td>${s.team}</td><td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td>
+                    <td>${s.gf}</td><td>${s.ga}</td><td>${s.gd}</td><td>${s.points}</td>
+                `;
+            });
+        }
 
-/* ================= STICKMAN ================= */
-const man=new THREE.Group();
-const head=new THREE.Mesh(
- new THREE.SphereGeometry(0.25,16,16),
- new THREE.MeshStandardMaterial({color:0xffffff})
-);
-head.position.y=1.7;
-const body=new THREE.Mesh(
- new THREE.CylinderGeometry(0.15,0.2,1),
- new THREE.MeshStandardMaterial({color:0xffffff})
-);
-body.position.y=1;
-const leg1=new THREE.Mesh(
- new THREE.CylinderGeometry(0.08,0.1,0.9),
- new THREE.MeshStandardMaterial({color:0xffffff})
-);
-leg1.position.set(-0.15,0.45,0);
-const leg2=leg1.clone();
-leg2.position.x=0.15;
+        function renderAdvancing(divId, adv) {
+            document.getElementById(divId).innerHTML = `✅ Advancing: ${adv.map(t => t.team).join(', ')}`;
+        }
 
-man.add(head,body,leg1,leg2);
-man.position.set(0,0,4);
-scene.add(man);
+        async function runGroup(groupTeams, tableId, resultsId) {
+            const standings = groupTeams.map(t => ({team: t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0}));
+            let fixtures = [];
+            for (let i = 0; i < groupTeams.length; i++) {
+                for (let j = i + 1; j < groupTeams.length; j++) {
+                    fixtures.push([groupTeams[i], groupTeams[j]]);
+                }
+            }
+            fixtures.sort(() => Math.random() - 0.5);
+            const resultsDiv = document.getElementById(resultsId);
+            resultsDiv.innerHTML = '<h3>📊 Match Results:</h3>';
+            for (let f of fixtures) {
+                const result = simulateMatch(f[0], f[1], false);
+                const [g1, g2] = result.score.split('-').map(Number);
+                updateStanding(standings, f[0], g1, f[1], g2);
+                const p = document.createElement('p');
+                p.innerHTML = `⚽ <strong>${f[0]}</strong> ${result.score} <strong>${f[1]}</strong>`;
+                resultsDiv.appendChild(p);
+                await sleep(800);
+            }
+            standings.sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+            renderTable(standings, tableId);
+            return standings;
+        }
 
-/* ================= TOURNAMENT ================= */
-const TEAMS=[
-"Brazil","Argentina","France","Germany","Spain","Portugal","England","Italy",
-"Netherlands","Belgium","Croatia","Uruguay","Mexico","USA","Japan","Korea",
-"Senegal","Morocco","Nigeria","Ghana","Cameroon","Egypt","Iran","Saudi",
-"Australia","Denmark","Poland","Serbia","Switzerland","Sweden","Chile","Colombia"
-];
-const ROUND={32:"Round of 32",16:"Round of 16",8:"Quarter Final",4:"Semi Final",2:"Final"};
-function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+        async function simulateKnockoutMatch(team1, team2, divId) {
+            const div = document.getElementById(divId);
+            const result = simulateMatch(team1, team2, true);
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>⚽ ${team1} vs ${team2}</strong><br>${result.score}`;
+            if (result.pens) {
+                p.innerHTML += `<br>🔴 Penalties: ${result.pens}`;
+                const numKicks = result.kicks1.length;
+                let header = '<tr><th></th>';
+                for (let i = 1; i <= numKicks; i++) header += `<th>${i}</th>`;
+                header += '</tr>';
+                const row1 = `<tr><td>${team1}</td>${result.kicks1.map(k => `<td style="text-align:center; font-size:24px;">${k ? '⚽' : '❌'}</td>`).join('')}</tr>`;
+                const row2 = `<tr><td>${team2}</td>${result.kicks2.map(k => `<td style="text-align:center; font-size:24px;">${k ? '⚽' : '❌'}</td>`).join('')}</tr>`;
+                const pensTable = document.createElement('table');
+                pensTable.style.borderCollapse = 'collapse';
+                pensTable.style.margin = '10px 0';
+                pensTable.style.fontSize = '14px';
+                pensTable.innerHTML = `<thead>${header}</thead><tbody>${row1}${row2}</tbody>`;
+                p.appendChild(pensTable);
+            }
+            p.innerHTML += `<br><strong>🏆 Winner: ${result.winner}</strong>`;
+            div.appendChild(p);
+            await sleep(3000);
+            return result;
+        }
 
-let roundTeams=shuffle([...TEAMS]),nextRound=[];
-let matchIndex=0,matchNo=1;
+        async function startTournament() {
+            document.getElementById('startBtn').disabled = true;
+            const shuffled = [...teams].sort(() => Math.random() - 0.5);
+            groupA = shuffled.slice(0, 4);
+            groupB = shuffled.slice(4, 8);
+            document.getElementById('status').innerHTML = `
+                <h2>Groups Drawn!</h2>
+                <h3>Group A: ${groupA.join(', ')}</h3>
+                <h3>Group B: ${groupB.join(', ')}</h3>
+            `;
+            document.getElementById('groups').style.display = 'block';
+            document.getElementById('groupABtn').style.display = 'inline-block';
+        }
 
-/* ================= MATCH ================= */
-let scoreA=0,scoreB=0;
-let kick=0;
-let sudden=false;
-let suddenTurn=0; // 0=A, 1=B
-let shooting=false;
+        async function simulateGroupA() {
+            document.getElementById('groupABtn').disabled = true;
+            standingsA = await runGroup(groupA, 'tableA', 'resultsA');
+            renderAdvancing('advA', standingsA.slice(0, 2));
+            document.getElementById('groupBBtn').style.display = 'inline-block';
+        }
 
-let targetX=0,curve=0,speed=0,keeperDir=0;
+        async function simulateGroupB() {
+            document.getElementById('groupBBtn').disabled = true;
+            standingsB = await runGroup(groupB, 'tableB', 'resultsB');
+            renderAdvancing('advB', standingsB.slice(0, 2));
+            document.getElementById('semisBtn').style.display = 'inline-block';
+            document.getElementById('knockout').style.display = 'block';
+        }
 
-function hud(t){document.getElementById("hud").innerHTML=t;}
+        async function simulateSemis() {
+            document.getElementById('semisBtn').disabled = true;
+            const advA = standingsA.slice(0, 2);
+            const advB = standingsB.slice(0, 2);
+            const semi1 = [advA[0].team, advB[1].team];
+            const semi2 = [advA[1].team, advB[0].team];
+            const res1 = await simulateKnockoutMatch(semi1[0], semi1[1], 'knockout');
+            const res2 = await simulateKnockoutMatch(semi2[0], semi2[1], 'knockout');
+            semiWinners = [res1.winner, res2.winner];
+            document.getElementById('finalBtn').style.display = 'inline-block';
+            document.getElementById('finalResult').style.display = 'block';
+        }
 
-function resetPos(){
- ball.position.set(0,0.3,4);
- keeper.position.x=0;
- shooting=false;
-}
+        async function simulateFinal() {
+            document.getElementById('finalBtn').disabled = true;
+            const finalTeams = [...semiWinners].sort(() => Math.random() - 0.5);
+            const result = await simulateKnockoutMatch(finalTeams[0], finalTeams[1], 'finalResult');
+            document.getElementById('status').innerHTML = `<h2>🏆🥇 CHAMPION: ${result.winner} 🥇🏆</h2>`;
+            document.getElementById('restartBtn').style.display = 'inline-block';
+        }
 
-function startShot(){
- shooting=true;
- targetX=(Math.random()*4)-2;
- curve=(Math.random()-0.5)*0.03;
- speed=0.22+Math.random()*0.05;
- keeperDir=Math.sign(targetX)*(0.06+Math.random()*0.04);
-}
+        function restartTournament() {
+            location.reload();
+        }
 
-function resolveShot(){
- const save=Math.abs(ball.position.x-keeper.position.x)<0.9;
- if(!save){
-   if(!sudden){
-     kick%2===0?scoreA++:scoreB++;
-   }else{
-     suddenTurn===0?scoreA++:scoreB++;
-   }
- }
-
- if(!sudden) kick++;
-
- resetPos();
-
- // Normal penalties
- if(!sudden && kick>=10){
-   if(scoreA!==scoreB) return endMatch();
-   sudden=true; suddenTurn=0;
- }
-
- // Sudden death (A then B)
- if(sudden){
-   if(suddenTurn===1){
-     if(scoreA!==scoreB) return endMatch();
-     suddenTurn=0;
-   }else suddenTurn=1;
- }
-
- setTimeout(startShot,700);
-}
-
-function endMatch(){
- const A=roundTeams[matchIndex],B=roundTeams[matchIndex+1];
- const winner=scoreA>scoreB?A:B;
- nextRound.push(winner);
-
- hud(`🏁 ${A} ${scoreA} - ${scoreB} ${B}<br><b>Winner: ${winner}</b>`);
-
- setTimeout(()=>{
-   matchIndex+=2;matchNo++;
-   scoreA=scoreB=kick=0;sudden=false;
-   if(matchIndex>=roundTeams.length){
-     roundTeams=[...nextRound];
-     nextRound=[];
-     matchIndex=0;
-   }
-   if(roundTeams.length===1){
-     hud(`🏆 TOURNAMENT CHAMPION<br><b>${roundTeams[0]}</b>`);
-     return;
-   }
-   resetPos();
-   setTimeout(startShot,1000);
- },2000);
-}
-
-/* ================= LOOP ================= */
-function animate(){
- requestAnimationFrame(animate);
-
- if(!shooting){
-   const A=roundTeams[matchIndex],B=roundTeams[matchIndex+1];
-   hud(`<b>${ROUND[roundTeams.length]}</b> | Match ${matchNo}<br>
-${A} ${scoreA} - ${scoreB} ${B}${sudden?"<br><i>Sudden Death</i>":""}`);
- }
-
- if(shooting){
-   ball.position.z-=speed;
-   ball.position.x+=targetX*0.02+curve;
-   keeper.position.x+=keeperDir;
-   leg1.rotation.x=-0.6; leg2.rotation.x=0.3;
-
-   if(ball.position.z<-7.3){
-     leg1.rotation.x=0; leg2.rotation.x=0;
-     resolveShot();
-   }
- }
-
- renderer.render(scene,camera);
-}
-
-resetPos();
-setTimeout(startShot,1000);
-animate();
-
-window.addEventListener("resize",()=>{
- camera.aspect=innerWidth/innerHeight;
- camera.updateProjectionMatrix();
- renderer.setSize(innerWidth,innerHeight);
-});
-</script>
+        // Event listeners
+        document.getElementById('startBtn').onclick = startTournament;
+        document.getElementById('groupABtn').onclick = simulateGroupA;
+        document.getElementById('groupBBtn').onclick = simulateGroupB;
+        document.getElementById('semisBtn').onclick = simulateSemis;
+        document.getElementById('finalBtn').onclick = simulateFinal;
+        document.getElementById('restartBtn').onclick = restartTournament;
+    </script>
 </body>
 </html>
