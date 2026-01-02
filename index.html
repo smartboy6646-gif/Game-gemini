@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>3D Penalty Tournament Simulator</title>
+<title>3D Penalty Tournament (Fixed Sudden Death)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:Arial}
@@ -18,189 +18,206 @@ color:#fff;font-size:14px;line-height:1.4
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-/* ===================== BASIC SETUP ===================== */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+/* ================= BASIC ================= */
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
 
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
 camera.position.set(0,6,12);
 camera.lookAt(0,2,0);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);
 
 scene.add(new THREE.AmbientLight(0xffffff,0.6));
-const sun = new THREE.DirectionalLight(0xffffff,0.7);
+const sun=new THREE.DirectionalLight(0xffffff,0.7);
 sun.position.set(5,10,5);
 scene.add(sun);
 
-/* ===================== GROUND & GOAL ===================== */
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(40,20),
-  new THREE.MeshStandardMaterial({color:0x1f7a3a})
+/* ================= GROUND ================= */
+const ground=new THREE.Mesh(
+ new THREE.PlaneGeometry(40,20),
+ new THREE.MeshStandardMaterial({color:0x1f7a3a})
 );
-ground.rotation.x = -Math.PI/2;
+ground.rotation.x=-Math.PI/2;
 scene.add(ground);
 
-const goalMat = new THREE.MeshStandardMaterial({color:0xffffff});
-function goalPart(w,h,d,x,y,z){
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),goalMat);
-  m.position.set(x,y,z);scene.add(m);
+/* ================= GOAL ================= */
+const goalMat=new THREE.MeshStandardMaterial({color:0xffffff});
+function goal(w,h,d,x,y,z){
+ const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),goalMat);
+ g.position.set(x,y,z);scene.add(g);
 }
-goalPart(6,0.2,0.2,0,3,-8);
-goalPart(0.2,3,0.2,-3,1.5,-8);
-goalPart(0.2,3,0.2, 3,1.5,-8);
+goal(6,0.2,0.2,0,3,-8);
+goal(0.2,3,0.2,-3,1.5,-8);
+goal(0.2,3,0.2,3,1.5,-8);
 
-/* ===================== BALL & KEEPER ===================== */
-const ball = new THREE.Mesh(
-  new THREE.SphereGeometry(0.3,32,32),
-  new THREE.MeshStandardMaterial({color:0xffffff})
+/* ================= BALL ================= */
+const ball=new THREE.Mesh(
+ new THREE.SphereGeometry(0.3,32,32),
+ new THREE.MeshStandardMaterial({color:0xffffff})
 );
 scene.add(ball);
 
-const keeper = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2,2,0.6),
-  new THREE.MeshStandardMaterial({color:0xffd700})
+/* ================= GOALKEEPER ================= */
+const keeper=new THREE.Mesh(
+ new THREE.BoxGeometry(1.2,2,0.6),
+ new THREE.MeshStandardMaterial({color:0xffd700})
 );
 keeper.position.set(0,1,-7.5);
 scene.add(keeper);
 
-/* ===================== TOURNAMENT DATA ===================== */
+/* ================= STICKMAN ================= */
+const man=new THREE.Group();
+const head=new THREE.Mesh(
+ new THREE.SphereGeometry(0.25,16,16),
+ new THREE.MeshStandardMaterial({color:0xffffff})
+);
+head.position.y=1.7;
+const body=new THREE.Mesh(
+ new THREE.CylinderGeometry(0.15,0.2,1),
+ new THREE.MeshStandardMaterial({color:0xffffff})
+);
+body.position.y=1;
+const leg1=new THREE.Mesh(
+ new THREE.CylinderGeometry(0.08,0.1,0.9),
+ new THREE.MeshStandardMaterial({color:0xffffff})
+);
+leg1.position.set(-0.15,0.45,0);
+const leg2=leg1.clone();
+leg2.position.x=0.15;
+
+man.add(head,body,leg1,leg2);
+man.position.set(0,0,4);
+scene.add(man);
+
+/* ================= TOURNAMENT ================= */
 const TEAMS=[
 "Brazil","Argentina","France","Germany","Spain","Portugal","England","Italy",
 "Netherlands","Belgium","Croatia","Uruguay","Mexico","USA","Japan","Korea",
 "Senegal","Morocco","Nigeria","Ghana","Cameroon","Egypt","Iran","Saudi",
 "Australia","Denmark","Poland","Serbia","Switzerland","Sweden","Chile","Colombia"
 ];
+const ROUND={32:"Round of 32",16:"Round of 16",8:"Quarter Final",4:"Semi Final",2:"Final"};
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-const ROUND_NAME={
-32:"Round of 32",16:"Round of 16",8:"Quarter Final",4:"Semi Final",2:"Final"
-};
+let roundTeams=shuffle([...TEAMS]),nextRound=[];
+let matchIndex=0,matchNo=1;
 
-function shuffle(a){
-for(let i=a.length-1;i>0;i--){
-let j=Math.floor(Math.random()*(i+1));
-[a[i],a[j]]=[a[j],a[i]];
-}
-return a;
-}
-
-let roundTeams = shuffle([...TEAMS]);
-let nextRound = [];
-let matchIndex = 0;
-let matchNo = 1;
-
-/* ===================== MATCH STATE ===================== */
-let scoreA=0, scoreB=0, kick=0;
+/* ================= MATCH ================= */
+let scoreA=0,scoreB=0;
+let kick=0;
 let sudden=false;
+let suddenTurn=0; // 0=A, 1=B
 let shooting=false;
 
-let targetX=0, curve=0, speed=0, keeperDir=0;
+let targetX=0,curve=0,speed=0,keeperDir=0;
 
-function resetPositions(){
-  ball.position.set(0,0.3,4);
-  keeper.position.x=0;
-  shooting=false;
+function hud(t){document.getElementById("hud").innerHTML=t;}
+
+function resetPos(){
+ ball.position.set(0,0.3,4);
+ keeper.position.x=0;
+ shooting=false;
 }
 
-/* ===================== UI ===================== */
-function updateHUD(text){
-  document.getElementById("hud").innerHTML=text;
-}
-
-/* ===================== SHOOT ===================== */
 function startShot(){
-  shooting=true;
-  targetX = (Math.random()*4)-2;
-  curve = (Math.random()-0.5)*0.03;
-  speed = 0.22 + Math.random()*0.06;
-  keeperDir = Math.sign(targetX)*(0.05+Math.random()*0.04);
+ shooting=true;
+ targetX=(Math.random()*4)-2;
+ curve=(Math.random()-0.5)*0.03;
+ speed=0.22+Math.random()*0.05;
+ keeperDir=Math.sign(targetX)*(0.06+Math.random()*0.04);
 }
 
 function resolveShot(){
-  const save = Math.abs(ball.position.x - keeper.position.x) < 0.9;
-  if(!save){
-    if(kick%2===0) scoreA++; else scoreB++;
-  }
-  kick++;
-  resetPositions();
+ const save=Math.abs(ball.position.x-keeper.position.x)<0.9;
+ if(!save){
+   if(!sudden){
+     kick%2===0?scoreA++:scoreB++;
+   }else{
+     suddenTurn===0?scoreA++:scoreB++;
+   }
+ }
 
-  if(kick>=10 && scoreA!==scoreB) return endMatch();
-  if(kick>=10 && scoreA===scoreB) sudden=true;
-  if(sudden && scoreA!==scoreB) return endMatch();
+ if(!sudden) kick++;
 
-  setTimeout(startShot,700);
+ resetPos();
+
+ // Normal penalties
+ if(!sudden && kick>=10){
+   if(scoreA!==scoreB) return endMatch();
+   sudden=true; suddenTurn=0;
+ }
+
+ // Sudden death (A then B)
+ if(sudden){
+   if(suddenTurn===1){
+     if(scoreA!==scoreB) return endMatch();
+     suddenTurn=0;
+   }else suddenTurn=1;
+ }
+
+ setTimeout(startShot,700);
 }
 
-/* ===================== END MATCH ===================== */
 function endMatch(){
-  const A = roundTeams[matchIndex];
-  const B = roundTeams[matchIndex+1];
-  const winner = scoreA>scoreB ? A : B;
+ const A=roundTeams[matchIndex],B=roundTeams[matchIndex+1];
+ const winner=scoreA>scoreB?A:B;
+ nextRound.push(winner);
 
-  nextRound.push(winner);
+ hud(`🏁 ${A} ${scoreA} - ${scoreB} ${B}<br><b>Winner: ${winner}</b>`);
 
-  updateHUD(`🏁 ${A} ${scoreA} - ${scoreB} ${B}<br>Winner: <b>${winner}</b>`);
-
-  setTimeout(()=>{
-    matchIndex+=2;
-    matchNo++;
-    scoreA=scoreB=kick=0;
-    sudden=false;
-
-    if(matchIndex>=roundTeams.length){
-      roundTeams=[...nextRound];
-      nextRound=[];
-      matchIndex=0;
-    }
-
-    if(roundTeams.length===1){
-      updateHUD(`🏆 TOURNAMENT CHAMPION<br><b>${roundTeams[0]}</b>`);
-      return;
-    }
-
-    resetPositions();
-    setTimeout(startShot,1000);
-  },2000);
+ setTimeout(()=>{
+   matchIndex+=2;matchNo++;
+   scoreA=scoreB=kick=0;sudden=false;
+   if(matchIndex>=roundTeams.length){
+     roundTeams=[...nextRound];
+     nextRound=[];
+     matchIndex=0;
+   }
+   if(roundTeams.length===1){
+     hud(`🏆 TOURNAMENT CHAMPION<br><b>${roundTeams[0]}</b>`);
+     return;
+   }
+   resetPos();
+   setTimeout(startShot,1000);
+ },2000);
 }
 
-/* ===================== MAIN LOOP ===================== */
+/* ================= LOOP ================= */
 function animate(){
-  requestAnimationFrame(animate);
+ requestAnimationFrame(animate);
 
-  if(!shooting){
-    const A = roundTeams[matchIndex];
-    const B = roundTeams[matchIndex+1];
-    updateHUD(`
-<b>${ROUND_NAME[roundTeams.length]}</b> | Match ${matchNo}<br>
-${A} ${scoreA} - ${scoreB} ${B}
-${sudden?"<br><i>Sudden Death</i>":""}
-`);
-  }
+ if(!shooting){
+   const A=roundTeams[matchIndex],B=roundTeams[matchIndex+1];
+   hud(`<b>${ROUND[roundTeams.length]}</b> | Match ${matchNo}<br>
+${A} ${scoreA} - ${scoreB} ${B}${sudden?"<br><i>Sudden Death</i>":""}`);
+ }
 
-  if(shooting){
-    ball.position.z -= speed;
-    ball.position.x += targetX*0.02 + curve;
-    keeper.position.x += keeperDir;
+ if(shooting){
+   ball.position.z-=speed;
+   ball.position.x+=targetX*0.02+curve;
+   keeper.position.x+=keeperDir;
+   leg1.rotation.x=-0.6; leg2.rotation.x=0.3;
 
-    if(ball.position.z < -7.3){
-      resolveShot();
-    }
-  }
+   if(ball.position.z<-7.3){
+     leg1.rotation.x=0; leg2.rotation.x=0;
+     resolveShot();
+   }
+ }
 
-  renderer.render(scene,camera);
+ renderer.render(scene,camera);
 }
 
-/* ===================== START ===================== */
-resetPositions();
+resetPos();
 setTimeout(startShot,1000);
 animate();
 
 window.addEventListener("resize",()=>{
-camera.aspect=innerWidth/innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(innerWidth,innerHeight);
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
 });
 </script>
 </body>
