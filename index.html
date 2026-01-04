@@ -2,329 +2,173 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penalty Shootout Tournament Simulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gully Cricket Pro</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1, h2 {
-            text-align: center;
-            color: #333;
-        }
-        #controls {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 12px 24px;
-            margin: 5px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #status {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .group-section {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .standings {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 10px 0;
-        }
-        .standings th, .standings td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-        .standings th {
-            background-color: #007BFF;
-            color: white;
-            font-weight: bold;
-        }
-        .standings tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        #knockout, #finalResult {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #advA, #advB {
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: #28a745;
-            margin-top: 10px;
-        }
-        p {
-            font-size: 16px;
-            margin: 10px 0;
-        }
+        :root { --primary: #1565c0; --four: #ffeb3b; --six: #ff9800; --wicket: #d32f2f; --extra: #4caf50; --bg: #f4f7f6; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+        .card { background: white; width: 100%; max-width: 450px; height: 92vh; border-radius: 25px; display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        .batsman-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; background: #e3f2fd; padding: 12px; border-radius: 15px; }
+        .batsman-card { padding: 8px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; transition: 0.3s; }
+        .active-striker { background: #bbdefb; border-left: 5px solid var(--primary); transform: scale(1.02); }
+        .bat-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bat-score { color: var(--primary); font-size: 1.1rem; }
+
+        .score-box { background: var(--primary); color: white; border-radius: 20px; padding: 15px; text-align: center; flex-shrink: 0; }
+        .score-box h1 { font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
+        
+        .history-container { flex-grow: 1; overflow-y: auto; margin: 10px 0; padding: 5px; background: #fdfdfd; border-radius: 12px; border: 1px solid #eee; }
+        .over-row { background: white; margin-bottom: 8px; padding: 8px; border-radius: 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; }
+        .over-label { font-weight: bold; min-width: 55px; font-size: 0.8rem; color: #888; border-right: 1px solid #f0f0f0; }
+
+        .ball { min-width: 30px; height: 30px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; color: #333; }
+        .b-4 { background: var(--four); color: #000; } .b-6 { background: var(--six); color: #fff; } .b-w { background: var(--wicket); color: #fff; } .b-ex { background: var(--extra); color: #fff; }
+
+        .controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex-shrink: 0; padding-bottom: 5px; }
+        button { padding: 14px 2px; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .btn-gray { background: #e0e0e0; } .btn-4 { background: var(--four); } .btn-6 { background: var(--six); color: white; } .btn-wd { background: #f57c00; color: white; } .btn-wicket { background: var(--wicket); color: white; grid-column: span 2; } .btn-undo { background: #78909c; color: white; grid-column: span 2; } .btn-action { background: #2e7d32; color: white; grid-column: span 4; padding: 12px; margin-top: 5px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 25px; border-radius: 25px; width: 85%; max-width: 320px; text-align: center; }
     </style>
 </head>
 <body>
-    <h1>🏆 Penalty Shootout Tournament Simulator 🏆</h1>
-    <p style="text-align: center;">8 teams, 2 groups, top 2 advance to semis. All simulated! Watch penalties in knockouts.</p>
-    
-    <div id="controls">
-        <button id="startBtn">🚀 Start Tournament</button>
-        <button id="groupABtn" style="display:none;">⚽ Simulate Group A</button>
-        <button id="groupBBtn" style="display:none;">⚽ Simulate Group B</button>
-        <button id="semisBtn" style="display:none;">🥈 Simulate Semifinals</button>
-        <button id="finalBtn" style="display:none;">🥇 Simulate Final</button>
-        <button id="restartBtn" style="display:none;">🔄 Restart Tournament</button>
+
+<div id="nb-modal" class="modal"><div class="modal-content">
+    <h3>No Ball Extras</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <button onclick="addNoBall(0)">NB+0</button><button onclick="addNoBall(1)">NB+1</button>
+        <button onclick="addNoBall(2)">NB+2</button><button onclick="addNoBall(4)" class="b-4">NB+4</button>
+        <button onclick="addNoBall(6)" class="b-6" style="background:var(--six);color:white">NB+6</button>
     </div>
+    <button style="background:#333;color:white;width:100%;margin-top:10px" onclick="closeModal('nb-modal')">Cancel</button>
+</div></div>
 
-    <div id="status"></div>
-
-    <div id="groups" style="display:none;">
-        <div class="group-section">
-            <h2>Group A</h2>
-            <div id="resultsA"></div>
-            <table id="tableA" class="standings"></table>
-            <div id="advA"></div>
+<div class="card">
+    <div class="batsman-section">
+        <div id="b1-card" class="batsman-card active-striker" onclick="manualSwap()">
+            <span class="bat-name" id="b1-name">Batsman 1 *</span>
+            <span class="bat-score" id="b1-score">0(0)</span>
         </div>
-        <div class="group-section">
-            <h2>Group B</h2>
-            <div id="resultsB"></div>
-            <table id="tableB" class="standings"></table>
-            <div id="advB"></div>
+        <div id="b2-card" class="batsman-card" onclick="manualSwap()">
+            <span class="bat-name" id="b2-name">Batsman 2</span>
+            <span class="bat-score" id="b2-score">0(0)</span>
         </div>
     </div>
 
-    <div id="knockout" style="display:none;">
-        <h2>🥈 Semifinals</h2>
+    <div class="score-box">
+        <h1 id="main-score">0 - 0</h1>
+        <div style="font-size: 1.1rem; font-weight: bold;">Overs: <span id="overs-txt">0.0</span></div>
+        <div id="target-ui" style="display:none; font-size:0.9rem; margin-top:8px; background:rgba(255,255,255,0.2); border-radius:8px; padding:5px">
+            Target: <span id="target-val">0</span> | Need: <span id="need-val">0</span>
+        </div>
     </div>
 
-    <div id="finalResult" style="display:none;">
-        <h2>🥇 Final</h2>
+    <div id="over-history" class="history-container"></div>
+
+    <div class="controls">
+        <button class="btn-gray" onclick="addRun(0)">0</button>
+        <button class="btn-gray" onclick="addRun(1)">1</button>
+        <button class="btn-gray" onclick="addRun(2)">2</button>
+        <button class="btn-gray" onclick="addRun(3)">3</button>
+        <button class="btn-4" onclick="addRun(4)">4</button>
+        <button class="btn-6" onclick="addRun(6)">6</button>
+        <button class="btn-wd" onclick="addWide()">WD</button>
+        <button class="btn-wd" style="background:#f57c00" onclick="openModal('nb-modal')">NB</button>
+        <button class="btn-wicket" onclick="takeWicket()">WICKET</button>
+        <button class="btn-undo" onclick="undo()">UNDO</button>
+        <button class="btn-action" id="action-btn" onclick="switchInnings()">FINISH INNINGS</button>
     </div>
+</div>
 
-    <script>
-        const teams = ['Arsenal', 'Chelsea', 'Liverpool', 'Man City', 'Man Utd', 'Tottenham', 'Everton', 'Newcastle'];
-        let groupA = [], groupB = [], standingsA = [], standingsB = [], semiWinners = [];
+<script>
+    let score = 0, wickets = 0, balls = 0, target = 0, innings = 1, history = [];
+    let b1 = { name: "B1", runs: 0, balls: 0 }, b2 = { name: "B2", runs: 0, balls: 0 };
+    let striker = b1, nonStriker = b2;
 
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    window.onload = () => {
+        b1.name = prompt("Striker Name:", "Batsman 1") || "B1";
+        b2.name = prompt("Non-Striker Name:", "Batsman 2") || "B2";
+        updateDisplay();
+    };
 
-        function simulateMatch(t1, t2, isKnockout) {
-            const g1 = Math.floor(Math.random() * 6);
-            const g2 = Math.floor(Math.random() * 6);
-            let result = {
-                score: `${g1}-${g2}`,
-                winner: g1 !== g2 ? (g1 > g2 ? t1 : t2) : null,
-                kicks1: null,
-                kicks2: null,
-                pens: null
-            };
-            if (g1 === g2 && isKnockout) {
-                let kicks1 = [];
-                let kicks2 = [];
-                let scored1 = 0;
-                let scored2 = 0;
-                // First 5
-                for (let i = 0; i < 5; i++) {
-                    kicks1.push(Math.random() < 0.75 ? 1 : 0);
-                    kicks2.push(Math.random() < 0.75 ? 1 : 0);
-                    scored1 += kicks1[i];
-                    scored2 += kicks2[i];
-                }
-                // Sudden death
-                while (scored1 === scored2) {
-                    kicks1.push(Math.random() < 0.75 ? 1 : 0);
-                    kicks2.push(Math.random() < 0.75 ? 1 : 0);
-                    scored1 += kicks1[kicks1.length - 1];
-                    scored2 += kicks2[kicks2.length - 1];
-                }
-                result.kicks1 = kicks1;
-                result.kicks2 = kicks2;
-                result.pens = `${scored1}-${scored2}`;
-                result.winner = scored1 > scored2 ? t1 : t2;
-            }
-            return result;
+    function updateDisplay() {
+        document.getElementById('main-score').innerText = `${score} - ${wickets}`;
+        document.getElementById('overs-txt').innerText = `${Math.floor(balls/6)}.${balls%6}`;
+        document.getElementById('b1-name').innerText = b1.name + (striker === b1 ? " *" : "");
+        document.getElementById('b1-score').innerText = `${b1.runs}(${b1.balls})`;
+        document.getElementById('b2-name').innerText = b2.name + (striker === b2 ? " *" : "");
+        document.getElementById('b2-score').innerText = `${b2.runs}(${b2.balls})`;
+        document.getElementById('b1-card').className = `batsman-card ${striker === b1 ? 'active-striker' : ''}`;
+        document.getElementById('b2-card').className = `batsman-card ${striker === b2 ? 'active-striker' : ''}`;
+        if (innings === 2) {
+            document.getElementById('target-ui').style.display = "block";
+            document.getElementById('need-val').innerText = (target - score) > 0 ? (target - score) : "0";
         }
+    }
 
-        function updateStanding(standings, t1, g1, t2, g2) {
-            let s1 = standings.find(s => s.team === t1);
-            let s2 = standings.find(s => s.team === t2);
-            s1.played++; s2.played++;
-            s1.gf += g1; s1.ga += g2;
-            s2.gf += g2; s2.ga += g1;
-            s1.gd = s1.gf - s1.ga;
-            s2.gd = s2.gf - s2.ga;
-            if (g1 > g2) {
-                s1.won++; s1.points += 3;
-                s2.lost++;
-            } else if (g2 > g1) {
-                s2.won++; s2.points += 3;
-                s1.lost++;
-            } else {
-                s1.drawn++; s1.points++;
-                s2.drawn++; s2.points++;
-            }
+    function addRun(r) {
+        save(); score += r; striker.runs += r; striker.balls++; balls++;
+        if (r % 2 !== 0) swap(); 
+        if (balls % 6 === 0 && balls > 0) swap();
+        updateLog(r); updateDisplay();
+    }
+
+    function addWide() { save(); score += 1; updateLog('WD'); updateDisplay(); }
+    function addNoBall(r) {
+        save(); score += (r + 1); striker.runs += r;
+        if (r % 2 !== 0) swap(); updateLog(`NB${r>0?'+'+r:''}`); updateDisplay(); closeModal('nb-modal');
+    }
+
+    function takeWicket() {
+        save(); wickets++; striker.balls++; balls++; updateLog('W');
+        if (wickets < 10) {
+            let n = prompt("Naya Batsman:"); striker.name = n || "B" + (wickets + 2);
+            striker.runs = 0; striker.balls = 0;
         }
+        if (balls % 6 === 0) swap(); updateDisplay();
+    }
 
-        function renderTable(standings, tableId) {
-            const table = document.getElementById(tableId);
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            const tbody = table.querySelector('tbody');
-            standings.forEach((s, i) => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${i + 1}</td><td>${s.team}</td><td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td>
-                    <td>${s.gf}</td><td>${s.ga}</td><td>${s.gd}</td><td>${s.points}</td>
-                `;
-            });
+    function swap() { [striker, nonStriker] = [nonStriker, striker]; }
+    function manualSwap() { save(); swap(); updateDisplay(); }
+
+    function updateLog(val) {
+        let isL = !isNaN(val) || val === 'W';
+        let oN = isL ? Math.floor((balls - 1) / 6) : Math.floor(balls / 6);
+        let c = document.getElementById('over-history');
+        let oB = document.getElementById(`over-${oN}`);
+        if (!oB) {
+            oB = document.createElement('div'); oB.className = 'over-row'; oB.id = `over-${oN}`;
+            oB.innerHTML = `<div class="over-label">Over ${oN + 1}</div>`; c.prepend(oB);
         }
+        let b = document.createElement('div');
+        b.className = `ball ${val==4?'b-4':val==6?'b-6':val==='W'?'b-w':isNaN(val)?'b-ex':''}`;
+        b.innerText = val; oB.appendChild(b);
+    }
 
-        function renderAdvancing(divId, adv) {
-            document.getElementById(divId).innerHTML = `✅ Advancing: ${adv.map(t => t.team).join(', ')}`;
+    function switchInnings() {
+        if(confirm("Next Innings?")) {
+            target = score + 1; innings = 2; score = 0; wickets = 0; balls = 0;
+            b1.runs = 0; b1.balls = 0; b2.runs = 0; b2.balls = 0;
+            b1.name = prompt("Striker Name:") || "B1"; b2.name = prompt("Non-Striker Name:") || "B2";
+            document.getElementById('over-history').innerHTML = ""; updateDisplay();
         }
+    }
 
-        async function runGroup(groupTeams, tableId, resultsId) {
-            const standings = groupTeams.map(t => ({team: t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0}));
-            let fixtures = [];
-            for (let i = 0; i < groupTeams.length; i++) {
-                for (let j = i + 1; j < groupTeams.length; j++) {
-                    fixtures.push([groupTeams[i], groupTeams[j]]);
-                }
-            }
-            fixtures.sort(() => Math.random() - 0.5);
-            const resultsDiv = document.getElementById(resultsId);
-            resultsDiv.innerHTML = '<h3>📊 Match Results:</h3>';
-            for (let f of fixtures) {
-                const result = simulateMatch(f[0], f[1], false);
-                const [g1, g2] = result.score.split('-').map(Number);
-                updateStanding(standings, f[0], g1, f[1], g2);
-                const p = document.createElement('p');
-                p.innerHTML = `⚽ <strong>${f[0]}</strong> ${result.score} <strong>${f[1]}</strong>`;
-                resultsDiv.appendChild(p);
-                await sleep(800);
-            }
-            standings.sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
-            renderTable(standings, tableId);
-            return standings;
+    function save() { history.push({s:score, w:wickets, b:balls, b1r:b1.runs, b1b:b1.balls, b2r:b2.runs, b2b:b2.balls, st:striker===b1?'b1':'b2', h:document.getElementById('over-history').innerHTML}); }
+    function undo() {
+        if (history.length > 0) {
+            let l = history.pop(); score = l.s; wickets = l.w; balls = l.b;
+            b1.runs = l.b1r; b1.balls = l.b1b; b2.runs = l.b2r; b2.balls = l.b2b;
+            striker = (l.st === 'b1' ? b1 : b2); nonStriker = (l.st === 'b1' ? b2 : b1);
+            document.getElementById('over-history').innerHTML = l.h; updateDisplay();
         }
-
-        async function simulateKnockoutMatch(team1, team2, divId) {
-            const div = document.getElementById(divId);
-            const result = simulateMatch(team1, team2, true);
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>⚽ ${team1} vs ${team2}</strong><br>${result.score}`;
-            if (result.pens) {
-                p.innerHTML += `<br>🔴 Penalties: ${result.pens}`;
-                const numKicks = result.kicks1.length;
-                let header = '<tr><th></th>';
-                for (let i = 1; i <= numKicks; i++) header += `<th>${i}</th>`;
-                header += '</tr>';
-                const row1 = `<tr><td>${team1}</td>${result.kicks1.map(k => `<td style="text-align:center; font-size:24px;">${k ? '⚽' : '❌'}</td>`).join('')}</tr>`;
-                const row2 = `<tr><td>${team2}</td>${result.kicks2.map(k => `<td style="text-align:center; font-size:24px;">${k ? '⚽' : '❌'}</td>`).join('')}</tr>`;
-                const pensTable = document.createElement('table');
-                pensTable.style.borderCollapse = 'collapse';
-                pensTable.style.margin = '10px 0';
-                pensTable.style.fontSize = '14px';
-                pensTable.innerHTML = `<thead>${header}</thead><tbody>${row1}${row2}</tbody>`;
-                p.appendChild(pensTable);
-            }
-            p.innerHTML += `<br><strong>🏆 Winner: ${result.winner}</strong>`;
-            div.appendChild(p);
-            await sleep(3000);
-            return result;
-        }
-
-        async function startTournament() {
-            document.getElementById('startBtn').disabled = true;
-            const shuffled = [...teams].sort(() => Math.random() - 0.5);
-            groupA = shuffled.slice(0, 4);
-            groupB = shuffled.slice(4, 8);
-            document.getElementById('status').innerHTML = `
-                <h2>Groups Drawn!</h2>
-                <h3>Group A: ${groupA.join(', ')}</h3>
-                <h3>Group B: ${groupB.join(', ')}</h3>
-            `;
-            document.getElementById('groups').style.display = 'block';
-            document.getElementById('groupABtn').style.display = 'inline-block';
-        }
-
-        async function simulateGroupA() {
-            document.getElementById('groupABtn').disabled = true;
-            standingsA = await runGroup(groupA, 'tableA', 'resultsA');
-            renderAdvancing('advA', standingsA.slice(0, 2));
-            document.getElementById('groupBBtn').style.display = 'inline-block';
-        }
-
-        async function simulateGroupB() {
-            document.getElementById('groupBBtn').disabled = true;
-            standingsB = await runGroup(groupB, 'tableB', 'resultsB');
-            renderAdvancing('advB', standingsB.slice(0, 2));
-            document.getElementById('semisBtn').style.display = 'inline-block';
-            document.getElementById('knockout').style.display = 'block';
-        }
-
-        async function simulateSemis() {
-            document.getElementById('semisBtn').disabled = true;
-            const advA = standingsA.slice(0, 2);
-            const advB = standingsB.slice(0, 2);
-            const semi1 = [advA[0].team, advB[1].team];
-            const semi2 = [advA[1].team, advB[0].team];
-            const res1 = await simulateKnockoutMatch(semi1[0], semi1[1], 'knockout');
-            const res2 = await simulateKnockoutMatch(semi2[0], semi2[1], 'knockout');
-            semiWinners = [res1.winner, res2.winner];
-            document.getElementById('finalBtn').style.display = 'inline-block';
-            document.getElementById('finalResult').style.display = 'block';
-        }
-
-        async function simulateFinal() {
-            document.getElementById('finalBtn').disabled = true;
-            const finalTeams = [...semiWinners].sort(() => Math.random() - 0.5);
-            const result = await simulateKnockoutMatch(finalTeams[0], finalTeams[1], 'finalResult');
-            document.getElementById('status').innerHTML = `<h2>🏆🥇 CHAMPION: ${result.winner} 🥇🏆</h2>`;
-            document.getElementById('restartBtn').style.display = 'inline-block';
-        }
-
-        function restartTournament() {
-            location.reload();
-        }
-
-        // Event listeners
-        document.getElementById('startBtn').onclick = startTournament;
-        document.getElementById('groupABtn').onclick = simulateGroupA;
-        document.getElementById('groupBBtn').onclick = simulateGroupB;
-        document.getElementById('semisBtn').onclick = simulateSemis;
-        document.getElementById('finalBtn').onclick = simulateFinal;
-        document.getElementById('restartBtn').onclick = restartTournament;
-    </script>
+    }
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+</script>
 </body>
 </html>
