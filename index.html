@@ -30,36 +30,62 @@
 
         /* Modals */
      /* बिड मोडाललाई माथि सार्ने र तास देखिने बनाउने */
-#bid-modal { 
-    position: fixed; 
-    top: 20%; /* ५०% बाट घटाएर २०% मा सारिएको ताकि तलको तास देखियोस् */
-    left: 50%; 
-    transform: translate(-50%, 0); 
-    background: rgba(255, 255, 255, 0.9); /* अलि पारदर्शी बनाइएको */
-    color: black; 
-    padding: 10px; 
-    border-radius: 15px; 
-    z-index: 2000; 
-    text-align: center; 
-    width: 90%; 
-    max-width: 400px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
+<style>
+    /* बिड मोडाललाई माथि सार्ने ताकि तास नछोपियोस् */
+    #bid-modal { 
+        top: 15% !important; 
+        transform: translate(-50%, 0) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        z-index: 3000 !important;
+    }
 
-/* बिड बटमहरूलाई अझै कम्प्याक्ट बनाउने */
-.bid-btn { 
-    width: 40px; 
-    height: 35px; 
-    margin: 2px; 
-    cursor: pointer; 
-    background: var(--blue); 
-    color: white; 
-    border: none; 
-    border-radius: 5px; 
-    font-weight: bold;
-    font-size: 14px;
-}
+    /* फुल स्क्रिन बटनको डिजाइन */
+    #fs-btn {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        z-index: 9999;
+        padding: 8px 15px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: 1px solid white;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+</style>
 
+<body>
+    <button id="fs-btn" onclick="toggleFullScreen()">Full Screen ⛶</button>
+
+    <script>
+        // फुल स्क्रिन बनाउने फङ्सन
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error: ${err.message}`);
+                });
+                document.getElementById('fs-btn').innerText = "Exit Full Screen";
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    document.getElementById('fs-btn').innerText = "Full Screen ⛶";
+                }
+            }
+        }
+
+        // गेम भित्र पस्ने बित्तिकै अटोमेटिक फुल स्क्रिनको लागि आग्रह गर्ने (User interaction पछि)
+        const originalJoin = window.joinRoom;
+        window.joinRoom = async () => {
+            toggleFullScreen(); // जोइन गर्ने बित्तिकै फुल स्क्रिन प्रयास गर्ने
+            await originalJoin();
+        };
+
+        // बिडिङको बेला तास देखाउने ग्यारेन्टी गर्न यो CSS थप्नुहोस्
+        document.getElementById('bid-modal').addEventListener('show', () => {
+            document.getElementById('hand').style.zIndex = "4000";
+        });
+    </script>
+</body>
 /* हातमा भएको तासलाई बिडिङको बेला पनि देखिने गरी तह मिलाउने */
 #hand { 
     z-index: 2100; /* बिड मोडाल भन्दा माथि राख्ने */
