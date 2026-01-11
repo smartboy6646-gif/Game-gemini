@@ -1,316 +1,231 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ne">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Call Break Fullscreen - Mobile</title>
-    <style>
-        :root { --green: #1a472a; --gold: #d4af37; --red: #e74c3c; --blue: #3498db; }
-        body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; margin: 0; overflow: hidden; touch-action: manipulation; }
-        
-        #table { position: relative; width: 100vw; height: 100vh; background: radial-gradient(#2ecc71 10%, #1a472a 90%); overflow: hidden; }
-        .hidden { display: none !important; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Call Break Online – Final Stable</title>
 
-        /* Fullscreen Button */
-        #fs-btn { position: fixed; top: 10px; right: 10px; z-index: 5000; padding: 5px 10px; background: rgba(0,0,0,0.5); color: white; border: 1px solid white; border-radius: 5px; font-size: 12px; cursor: pointer; }
+<style>
+:root{--green:#1a472a;--gold:#d4af37;--red:#e74c3c;}
+html,body{margin:0;height:100%;overflow:hidden;font-family:Segoe UI;background:#0b3d2e;color:#fff}
+#rotate{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;font-size:22px}
+@media (orientation:portrait){#rotate{display:flex}}
+#fs{position:fixed;top:10px;right:10px;z-index:5000}
 
-        /* Bid Modal - Fixed Position to see cards */
-        #bid-modal { position: fixed; top: 15%; left: 50%; transform: translate(-50%, 0); background: rgba(255, 255, 255, 0.95); color: black; padding: 10px; border-radius: 15px; z-index: 3000; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
-        .bid-btn { width: 42px; height: 38px; margin: 2px; cursor: pointer; background: var(--blue); color: white; border: none; border-radius: 5px; font-weight: bold; }
+#lobby,#game{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column}
+input,button{padding:10px;font-size:16px;border-radius:8px;border:none}
 
-        /* Player Boxes */
-        .player-box { position: absolute; text-align: center; width: 90px; padding: 4px; background: rgba(0,0,0,0.8); border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); font-size: 0.7em; z-index: 10; }
-        .p-0 { bottom: 110px; left: 50%; transform: translateX(-50%); border-color: var(--gold); } 
-        .p-1 { left: 8px; top: 45%; transform: translateY(-50%); } 
-        .p-2 { top: 8px; left: 50%; transform: translateX(-50%); } 
-        .p-3 { right: 8px; top: 45%; transform: translateY(-50%); }
+#table{position:relative;width:100vw;height:100vh;background:radial-gradient(#2ecc71,#1a472a)}
+.player{position:absolute;width:120px;background:rgba(0,0,0,.6);padding:6px;border-radius:8px;text-align:center;font-size:13px;border:2px solid rgba(255,255,255,.15)}
+.me{border-color:var(--gold)}
+.bottom{bottom:110px;left:50%;transform:translateX(-50%)}
+.left{left:8px;top:45%;transform:translateY(-50%)}
+.top{top:8px;left:50%;transform:translateX(-50%)}
+.right{right:8px;top:45%;transform:translateY(-50%)}
 
-        /* Cards */
-        .card { width: 55px; height: 82px; background: white; color: black; border-radius: 6px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; box-sizing: border-box; font-weight: bold; font-size: 0.85em; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); }
-        .card.red { color: var(--red); }
-        #hand { position: absolute; bottom: 8px; width: 100%; display: flex; justify-content: center; height: 90px; z-index: 3100; pointer-events: auto; }
-        #hand .card { margin-left: -28px; cursor: pointer; }
+#hand{position:absolute;bottom:5px;width:100%;display:flex;justify-content:center}
+.card{width:56px;height:86px;background:#fff;color:#000;border-radius:8px;padding:5px;margin-left:-28px;font-weight:bold;cursor:pointer}
+.card.red{color:var(--red)}
 
-        #center-area { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 180px; height: 180px; }
-        .played-card { position: absolute; transition: all 0.5s ease-out; }
+#center{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px}
 
-        #score-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: black; padding: 15px; border-radius: 15px; z-index: 4000; text-align: center; width: 85%; max-width: 320px; }
-        table { width: 100%; font-size: 0.75em; border-collapse: collapse; }
-        th, td { border-bottom: 1px solid #ddd; padding: 5px; }
-        .rank-1 { background: #fff3cd; font-weight: bold; }
-
-        #rotate-notice { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f2027; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        @media (orientation: portrait) { #rotate-notice { display: flex; } }
-    </style>
+.modal{position:fixed;top:15%;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:12px;border-radius:12px;z-index:3000}
+.hidden{display:none}
+</style>
 </head>
+
 <body>
 
-    <div id="rotate-notice">
-        <div style="font-size: 40px;">🔄</div>
-        <h3 style="text-align:center;">कृपया फोन तेर्सो (Landscape) बनाउनुहोस्</h3>
-    </div>
+<div id="rotate">📱 फोन Landscape मा राख्नुहोस्</div>
+<button id="fs" onclick="fullscreen()">⛶</button>
 
-    <button id="fs-btn" onclick="toggleFullScreen()">Fullscreen ⛶</button>
+<div id="lobby">
+  <h2>Call Break Online</h2>
+  <input id="name" placeholder="Name">
+  <input id="room" placeholder="Room ID">
+  <button onclick="createRoom()">Create</button>
+  <button onclick="joinRoom()">Join</button>
+</div>
 
-    <div id="lobby" style="text-align:center; padding-top:40px;">
-        <h1 style="color:var(--gold)">Nepali Call Break</h1>
-        <input type="text" id="p-name" placeholder="Name" style="padding:10px;">
-        <input type="text" id="r-id" placeholder="Room ID" style="padding:10px; width:60px;">
-        <button onclick="joinRoom()" style="padding:12px 25px; background:var(--gold); border:none; font-weight:bold; cursor:pointer;">JOIN GAME</button>
-    </div>
+<div id="game" class="hidden">
+  <div id="table">
+    <div id="center"></div>
 
-    <div id="game-screen" class="hidden">
-        <div id="table">
-            <div id="center-area"></div>
-            <div class="player-box p-0" id="ui-0"><b>तपाईं</b><div class="info"></div></div>
-            <div class="player-box p-1" id="ui-1"><b>P2</b><div class="info"></div></div>
-            <div class="player-box p-2" id="ui-2"><b>P3</b><div class="info"></div></div>
-            <div class="player-box p-3" id="ui-3"><b>P4</b><div class="info"></div></div>
+    <div id="p0" class="player bottom me"></div>
+    <div id="p1" class="player left"></div>
+    <div id="p2" class="player top"></div>
+    <div id="p3" class="player right"></div>
 
-            <button id="start-btn" class="hidden" onclick="dealCards()" style="position:absolute; top:55%; left:50%; transform:translateX(-50%); padding:12px 30px; background:var(--gold); border-radius:20px; border:none; font-weight:bold; z-index:100;">DEAL CARDS</button>
+    <button id="deal" onclick="deal()" class="hidden" style="position:absolute;top:55%;left:50%;transform:translateX(-50%)">DEAL</button>
 
-            <div id="bid-modal" class="hidden">
-                <h3 id="round-txt" style="margin:5px;">राउन्ड १</h3>
-                <p style="font-size:12px; margin:2px;">आफ्नो तास हेरेर बिड रोज्नुहोस्</p>
-                <div id="bid-btns"></div>
-            </div>
+    <div id="bidBox" class="modal hidden"></div>
+    <div id="hand"></div>
+  </div>
+</div>
 
-            <div id="score-modal" class="hidden">
-                <h3 id="score-title" style="margin:5px;">📊 नतिजा</h3>
-                <table>
-                    <thead><tr><th>#</th><th>Name</th><th>Bid</th><th>T</th><th>Score</th></tr></thead>
-                    <tbody id="score-body"></tbody>
-                </table>
-                <button id="next-btn" onclick="dealCards()" style="margin-top:10px; padding:10px; background:var(--green); color:white; border:none; width:100%; border-radius:5px; font-weight:bold;">अर्को राउन्ड</button>
-            </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-            <div id="hand"><div id="card-inner" style="display:flex;"></div></div>
-        </div>
-    </div>
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {apiKey: "AIzaSyDKKAxKTFJcMDmj6j21nKHwlSpwAxsw57k",
+  authDomain: "call-breke.firebaseapp.com",
+  databaseURL: "https://call-breke-default-rtdb.firebaseio.com",
+  projectId: "call-breke",
+  storageBucket: "call-breke.firebasestorage.app",
+  messagingSenderId: "908751603046",
+  appId: "1:908751603046:web:fd30e07b9e6400b35c74a7",
+  measurementId: "G-V2D55S47QV"
+};
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        // Firebase Config (Keep your own config here)
-        const firebaseConfig = { 
-            apiKey: "AIzaSyDKKAxKTFJcMDmj6j21nKHwlSpwAxsw57k",
-            authDomain: "call-breke.firebaseapp.com",
-            databaseURL: "https://call-breke-default-rtdb.firebaseio.com",
-            projectId: "call-breke",
-            storageBucket: "call-breke.firebasestorage.app",
-            messagingSenderId: "908751603046",
-            appId: "1:908751603046:web:fd30e07b9e6400b35c74a7",
-            measurementId: "G-V2D55S47QV" 
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+/* STATE */
+let myId,myName,roomId,roomRef,game;
 
-        let myId, myName, roomId, mySeat, gameData;
-        const rankVal = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
-        const suitIcons = {S:'♠', H:'♥', D:'♦', C:'♣'};
+/* UTILS */
+const suits=['S','H','D','C'];
+const ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const val=r=>r=='A'?14:r=='K'?13:r=='Q'?12:r=='J'?11:+r;
+const icon=s=>({S:'♠',H:'♥',D:'♦',C:'♣'})[s];
 
-        // Fullscreen Toggle
-        window.toggleFullScreen = () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(e => console.log(e));
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-            }
-        };
+/* FULLSCREEN */
+window.fullscreen=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
 
-        window.joinRoom = async () => {
-            myName = document.getElementById('p-name').value;
-            roomId = document.getElementById('r-id').value;
-            if(!myName || !roomId) return;
-            
-            // Auto-request fullscreen on join
-            try { document.documentElement.requestFullscreen(); } catch(e) {}
+/* CREATE ROOM */
+window.createRoom=()=>{
+  myName=name.value.trim(); if(!myName)return;
+  myId=myName+"_"+Math.random().toString(36).slice(2,7);
+  roomId=(room.value||Math.random().toString(36).slice(2,7)).toUpperCase();
+  roomRef=ref(db,'rooms/'+roomId);
 
-            myId = myName + "_" + Math.floor(Math.random() * 99);
-            const rRef = ref(db, 'rooms/' + roomId);
-            const snap = await get(rRef);
-            if (!snap.val()) {
-                await set(rRef, { players: [{id: myId, name: myName, host: true, bid: 0, tricks: 0, totalScore: 0}], status: 'waiting', turn: 0, round: 0 });
-            } else {
-                let p = snap.val().players;
-                if(p.length < 4) {
-                    p.push({id: myId, name: myName, bid: 0, tricks: 0, totalScore: 0});
-                    await update(rRef, { players: p });
-                }
-            }
-            onValue(rRef, (s) => { gameData = s.val(); if(gameData) sync(); });
-        };
+  set(roomRef,{
+    order:[myId],
+    players:{[myId]:{name:myName,hand:[],bid:0,tricks:0,score:0}},
+    status:'waiting',
+    turn:0,
+    round:0
+  }).then(startListen);
+}
 
-        function sync() {
-            document.getElementById('lobby').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            mySeat = gameData.players.findIndex(p => p.id === myId);
+/* JOIN ROOM (TRANSACTION SAFE) */
+window.joinRoom=async()=>{
+  myName=name.value.trim(); roomId=room.value.trim().toUpperCase();
+  if(!myName||!roomId)return;
+  myId=myName+"_"+Math.random().toString(36).slice(2,7);
+  roomRef=ref(db,'rooms/'+roomId);
 
-            gameData.players.forEach((p, i) => {
-                const pos = (i - mySeat + 4) % 4;
-                const ui = document.getElementById(`ui-${pos}`);
-                ui.querySelector('b').innerText = p.name;
-                ui.querySelector('.info').innerText = `B:${p.bid} | T:${p.tricks} | S:${p.totalScore.toFixed(1)}`;
-                ui.style.borderColor = (gameData.turn === i) ? "var(--gold)" : "rgba(255,255,255,0.2)";
-                ui.style.boxShadow = (gameData.turn === i) ? "0 0 10px var(--gold)" : "none";
-            });
+  await runTransaction(roomRef,(r)=>{
+    if(!r||r.order.length>=4)return r;
+    r.order.push(myId);
+    r.players[myId]={name:myName,hand:[],bid:0,tricks:0,score:0};
+    return r;
+  });
+  startListen();
+}
 
-            if (gameData.players[mySeat]?.host && (gameData.status === 'waiting' || gameData.status === 'round_end') && gameData.players.length === 4) 
-                document.getElementById('start-btn').classList.remove('hidden');
-            else document.getElementById('start-btn').classList.add('hidden');
+/* DISCONNECT FIX */
+function startListen(){
+  onDisconnect(ref(db,`rooms/${roomId}/players/${myId}`)).remove();
 
-            const bModal = document.getElementById('bid-modal');
-            if (gameData.status === 'bidding' && gameData.turn === mySeat) {
-                bModal.classList.remove('hidden');
-                document.getElementById('round-txt').innerText = `राउन्ड ${gameData.round}`;
-                const box = document.getElementById('bid-btns'); box.innerHTML = '';
-                for(let i=1; i<=13; i++) {
-                    const b = document.createElement('button'); b.innerText = i; b.className='bid-btn';
-                    b.onclick = () => submitBid(i); box.appendChild(b);
-                }
-            } else bModal.classList.add('hidden');
+  onValue(roomRef,s=>{
+    if(!s.val())location.reload();
+    game=s.val();
+    render();
+  });
 
-            const sModal = document.getElementById('score-modal');
-            if (gameData.status === 'round_end') {
-                sModal.classList.remove('hidden');
-                const sorted = [...gameData.players].sort((a,b) => b.totalScore - a.totalScore);
-                const tbody = document.getElementById('score-body'); tbody.innerHTML = '';
-                sorted.forEach((p, idx) => {
-                    let r = idx + 1;
-                    if(idx === 0) r = "👑"; if(idx === 1) r = "🥈";
-                    tbody.innerHTML += `<tr class="${idx===0?'rank-1':''}"><td>${r}</td><td>${p.name}</td><td>${p.bid}</td><td>${p.tricks}</td><td>${p.totalScore.toFixed(1)}</td></tr>`;
-                });
-                if(gameData.round >= 5) {
-                    document.getElementById('score-title').innerText = "🏆 Final Champion 🏆";
-                    document.getElementById('next-btn').classList.add('hidden');
-                }
-            } else sModal.classList.add('hidden');
+  lobby.classList.add('hidden');
+  gameDiv.classList.remove('hidden');
+  document.documentElement.requestFullscreen().catch(()=>{});
+}
 
-            // Glitch Fix: Check hand length strictly
-            const cardBox = document.getElementById('card-inner');
-            const hData = gameData.players[mySeat].hand || [];
-            if (cardBox.children.length !== hData.length) {
-                cardBox.innerHTML = '';
-                const sorted = [...hData].sort((a,b)=>a.s.localeCompare(b.s) || rankVal[a.r]-rankVal[b.r]);
-                sorted.forEach((c, idx) => {
-                    const div = createCardUI(c);
-                    div.onclick = () => playCard(c, idx);
-                    cardBox.appendChild(div);
-                });
-            }
+/* RENDER */
+function render(){
+  const idx=game.order.indexOf(myId);
+  if(idx===-1)return location.reload();
 
-            const center = document.getElementById('center-area'); center.innerHTML = '';
-            (gameData.currentTrick || []).forEach(t => {
-                const cUI = createCardUI(t.card);
-                const pos = (t.pIdx - mySeat + 4) % 4;
-                const styles = [{bottom:'5px', left:'65px'}, {left:'5px', top:'50px'}, {top:'5px', left:'65px'}, {right:'5px', top:'50px'}];
-                cUI.classList.add('played-card'); Object.assign(cUI.style, styles[pos]);
-                center.appendChild(cUI);
-            });
-        }
+  game.order.forEach((id,i)=>{
+    const ui=document.getElementById('p'+((i-idx+4)%4));
+    const p=game.players[id];
+    ui.innerHTML=`<b>${id===myId?'You':p.name}</b><br>B:${p.bid} T:${p.tricks} S:${p.score.toFixed(1)}`;
+    ui.style.borderColor=(game.turn===i)?'var(--gold)':'rgba(255,255,255,.15)';
+  });
 
-        window.dealCards = () => {
-            if(gameData.round >= 5) return;
-            let deck = [];
-            ['S','H','D','C'].forEach(s => ['2','3','4','5','6','7','8','9','10','J','Q','K','A'].forEach(r => deck.push({s, r})));
-            deck.sort(() => Math.random() - 0.5);
-            const p = gameData.players.map((pl, i) => ({ ...pl, hand: deck.slice(i*13, (i+1)*13), bid: 0, tricks: 0 }));
-            update(ref(db, 'rooms/'+roomId), { status:'bidding', players:p, turn:gameData.round % 4, round:gameData.round+1, currentTrick:[], leadSuit:'' });
-        };
+  deal.classList.toggle('hidden',!(idx===0 && (game.status==='waiting'||game.status==='round_end') && game.order.length===4));
 
-        window.submitBid = (n) => {
-            const p = [...gameData.players]; p[mySeat].bid = n;
-            if (p.every(pl => pl.bid > 0)) {
-                const total = p.reduce((a, b) => a + b.bid, 0);
-                if (total < 10) {
-                    p.forEach(pl => { pl.totalScore += (pl.bid + 0.1); pl.bid = 0; pl.tricks = 0; });
-                    alert(`जम्मा बिड ${total} भयो। बोनस स्कोर थपेर अर्को राउन्ड सुरु हुँदैछ!`);
-                    setTimeout(() => window.dealCardsWithScore(p), 1200);
-                } else {
-                    update(ref(db, 'rooms/'+roomId), { players: p, turn: (gameData.round - 1) % 4, status: 'playing' });
-                }
-            } else {
-                update(ref(db, 'rooms/'+roomId), { players: p, turn: (mySeat + 1) % 4 });
-            }
-        };
+  renderHand(game.players[myId].hand);
 
-        window.dealCardsWithScore = (upP) => {
-            if(gameData.round >= 5) { update(ref(db, 'rooms/'+roomId), { players: upP, status: 'round_end' }); return; }
-            let deck = [];
-            ['S','H','D','C'].forEach(s => ['2','3','4','5','6','7','8','9','10','J','Q','K','A'].forEach(r => deck.push({s, r})));
-            deck.sort(() => Math.random() - 0.5);
-            const nextP = upP.map((pl, i) => ({ ...pl, hand: deck.slice(i*13, (i+1)*13), bid: 0, tricks: 0 }));
-            update(ref(db, 'rooms/'+roomId), { status:'bidding', players:nextP, turn:gameData.round % 4, round:gameData.round+1, currentTrick:[], leadSuit:'' });
-        };
+  if(game.status==='bidding' && game.order[game.turn]===myId) showBid();
+  else bidBox.classList.add('hidden');
+}
 
-        window.playCard = (card, idx) => {
-            if (gameData.status !== 'playing' || gameData.turn !== mySeat) return;
-            const hand = [...gameData.players[mySeat].hand];
-            const lead = gameData.leadSuit;
-            const trick = gameData.currentTrick || [];
+/* DEAL */
+window.deal=()=>{
+  let deck=[];
+  suits.forEach(s=>ranks.forEach(r=>deck.push({s,r})));
+  deck.sort(()=>Math.random()-.5);
+  game.order.forEach((id,i)=>{
+    game.players[id].hand=deck.slice(i*13,(i+1)*13);
+    game.players[id].bid=0; game.players[id].tricks=0;
+  });
+  update(roomRef,{players:game.players,status:'bidding',turn:0,round:game.round+1});
+}
 
-            if (lead) {
-                const hasLead = hand.some(c => c.s === lead);
-                const hasSpade = hand.some(c => c.s === 'S');
-                let winT = trick[0];
-                trick.forEach(t => {
-                    const isT = t.card.s==='S', isW = winT.card.s==='S';
-                    if((isT && !isW) || (t.card.s===winT.card.s && rankVal[t.card.r]>rankVal[winT.card.r])) winT = t;
-                });
+/* BID */
+function showBid(){
+  bidBox.innerHTML='<h3>Bid</h3>';
+  for(let i=1;i<=13;i++){
+    const b=document.createElement('button');
+    b.innerText=i;
+    b.onclick=()=>submitBid(i);
+    bidBox.appendChild(b);
+  }
+  bidBox.classList.remove('hidden');
+}
 
-                if (hasLead) {
-                    if (card.s !== lead) { alert(`${suitIcons[lead]} फाल्नुहोस्!`); return; }
-                    if (winT.card.s === lead) {
-                        const canWin = hand.some(c => c.s===lead && rankVal[c.r]>rankVal[winT.card.r]);
-                        if (canWin && rankVal[card.r]<rankVal[winT.card.r]) { alert("ठूलो तास फाल्नुहोस्!"); return; }
-                    }
-                } else if (hasSpade) {
-                    if (winT.card.s === 'S') {
-                        const canWinS = hand.some(c => c.s==='S' && rankVal[c.r]>rankVal[winT.card.r]);
-                        if (canWinS && (card.s!=='S' || rankVal[card.r]<rankVal[winT.card.r])) { alert("जित्ने हुकुम फाल्नुहोस्!"); return; }
-                    } else if (card.s !== 'S') { alert("हुकुमले काट्नुहोस्!"); return; }
-                }
-            }
+function submitBid(n){
+  if(game.order[game.turn]!==myId)return; // HARD TURN CHECK
+  game.players[myId].bid=n;
+  const next=(game.turn+1)%4;
+  const all=game.order.every(id=>game.players[id].bid>0);
+  update(roomRef,all?{players:game.players,status:'playing',turn:game.turn}:{players:game.players,turn:next});
+}
 
-            // Fix: Clear from UI immediately
-            const p = [...gameData.players];
-            const myH = [...p[mySeat].hand];
-            myH.splice(idx, 1);
-            p[mySeat].hand = myH;
+/* HAND */
+function renderHand(hand){
+  handDiv.innerHTML='';
+  hand.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='card'+((c.s==='H'||c.s==='D')?' red':'');
+    d.innerHTML=`${c.r}<div style="font-size:22px">${icon(c.s)}</div>`;
+    d.onclick=()=>play(c);
+    handDiv.appendChild(d);
+  });
+}
 
-            const newT = [...trick, {pIdx: mySeat, card}];
-            const nextTurn = newT.length === 4 ? -1 : (mySeat + 1) % 4;
+/* PLAY CARD – HARD VALIDATION */
+function play(card){
+  if(game.status!=='playing')return;
+  if(game.order[game.turn]!==myId)return;
 
-            update(ref(db, 'rooms/'+roomId), { players: p, currentTrick: newT, turn: nextTurn, leadSuit: lead || card.s });
+  const h=game.players[myId].hand;
+  const i=h.findIndex(c=>c.s===card.s&&c.r===card.r);
+  if(i<0)return;
 
-            if (newT.length === 4) setTimeout(() => resolveTrick(newT, p), 800);
-        }
+  h.splice(i,1);
+  const trick=game.trick||[];
+  trick.push({p:game.turn,card});
+  update(roomRef,{players:game.players,trick,turn:(game.turn+1)%4});
+}
 
-        function resolveTrick(trick, p) {
-            let win = trick[0];
-            trick.forEach(t => {
-                const isT = t.card.s==='S', isW = win.card.s==='S';
-                if((isT && !isW) || (t.card.s===win.card.s && rankVal[t.card.r]>rankVal[win.card.r])) win = t;
-            });
-            p[win.pIdx].tricks++;
-            if (p[0].hand.length === 0) {
-                p.forEach(pl => {
-                    if (pl.tricks >= pl.bid) pl.totalScore += pl.bid + (pl.tricks - pl.bid) * 0.1;
-                    else pl.totalScore -= pl.bid;
-                });
-                update(ref(db, 'rooms/'+roomId), { players: p, status: 'round_end', currentTrick: [], leadSuit: '' });
-            } else {
-                update(ref(db, 'rooms/'+roomId), { players: p, currentTrick: [], turn: win.pIdx, leadSuit: '' });
-            }
-        }
+/* DOM */
+const lobby=document.getElementById('lobby');
+const gameDiv=document.getElementById('game');
+const handDiv=document.getElementById('hand');
+const bidBox=document.getElementById('bidBox');
+const deal=document.getElementById('deal');
 
-        function createCardUI(c) {
-            const div = document.createElement('div');
-            div.className = `card ${ (c.s==='H'||c.s==='D') ? 'red' : '' }`;
-            div.innerHTML = `<div>${c.r}</div><div style="font-size:1.6em;text-align:center;">${suitIcons[c.s]}</div><div style="transform:rotate(180deg)">${c.r}</div>`;
-            return div;
-        }
-    </script>
+</script>
 </body>
 </html>
