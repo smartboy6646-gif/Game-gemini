@@ -2,173 +2,352 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Gully Cricket Pro</title>
+    <title>Call Break - 5 Rounds & Pro Scoreboard</title>
     <style>
-        :root { --primary: #1565c0; --four: #ffeb3b; --six: #ff9800; --wicket: #d32f2f; --extra: #4caf50; --bg: #f4f7f6; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
-        .card { background: white; width: 100%; max-width: 450px; height: 92vh; border-radius: 25px; display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        :root { --green: #1a472a; --gold: #d4af37; --red: #e74c3c; --blue: #3498db; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f2027; color: white; margin: 0; overflow: hidden; }
+        .hidden { display: none !important; }
+        #table { position: relative; height: 100vh; background: radial-gradient(#2ecc71 10%, #1a472a 90%); border: 15px solid #5d4037; box-sizing: border-box; }
         
-        .batsman-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; background: #e3f2fd; padding: 12px; border-radius: 15px; }
-        .batsman-card { padding: 8px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; transition: 0.3s; }
-        .active-striker { background: #bbdefb; border-left: 5px solid var(--primary); transform: scale(1.02); }
-        .bat-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .bat-score { color: var(--primary); font-size: 1.1rem; }
+        /* Player Boxes */
+        .player-box { position: absolute; text-align: center; width: 150px; padding: 10px; background: rgba(0,0,0,0.85); border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); transition: 0.3s; }
+        .p-0 { bottom: 180px; left: 50%; transform: translateX(-50%); border-color: var(--gold); box-shadow: 0 0 15px rgba(212,175,55,0.3); } 
+        .p-1 { left: 20px; top: 45%; transform: translateY(-50%); } 
+        .p-2 { top: 20px; left: 50%; transform: translateX(-50%); } 
+        .p-3 { right: 20px; top: 45%; transform: translateY(-50%); } 
 
-        .score-box { background: var(--primary); color: white; border-radius: 20px; padding: 15px; text-align: center; flex-shrink: 0; }
-        .score-box h1 { font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
+        /* Cards Style */
+        .card { width: 75px; height: 110px; background: white; color: black; border-radius: 8px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
+        .card.red { color: var(--red); }
+        #hand { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; height: 130px; }
+        #hand .card { margin-left: -35px; cursor: pointer; transition: 0.2s; border: 1px solid #999; }
+        #hand .card:hover { transform: translateY(-25px); z-index: 100; border: 2px solid var(--gold); }
+        #center-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; }
+        .played-card { position: absolute; }
+
+        /* Scoreboard & Modals */
+        #bid-modal, #score-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; color: #333; padding: 25px; border-radius: 20px; z-index: 5000; text-align: center; width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .bid-btn { width: 50px; height: 45px; margin: 4px; cursor: pointer; background: var(--blue); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; }
         
-        .history-container { flex-grow: 1; overflow-y: auto; margin: 10px 0; padding: 5px; background: #fdfdfd; border-radius: 12px; border: 1px solid #eee; }
-        .over-row { background: white; margin-bottom: 8px; padding: 8px; border-radius: 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; }
-        .over-label { font-weight: bold; min-width: 55px; font-size: 0.8rem; color: #888; border-right: 1px solid #f0f0f0; }
-
-        .ball { min-width: 30px; height: 30px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; color: #333; }
-        .b-4 { background: var(--four); color: #000; } .b-6 { background: var(--six); color: #fff; } .b-w { background: var(--wicket); color: #fff; } .b-ex { background: var(--extra); color: #fff; }
-
-        .controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex-shrink: 0; padding-bottom: 5px; }
-        button { padding: 14px 2px; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .btn-gray { background: #e0e0e0; } .btn-4 { background: var(--four); } .btn-6 { background: var(--six); color: white; } .btn-wd { background: #f57c00; color: white; } .btn-wicket { background: var(--wicket); color: white; grid-column: span 2; } .btn-undo { background: #78909c; color: white; grid-column: span 2; } .btn-action { background: #2e7d32; color: white; grid-column: span 4; padding: 12px; margin-top: 5px; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-content { background: white; padding: 25px; border-radius: 25px; width: 85%; max-width: 320px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 10px; overflow: hidden; }
+        th { background: #eee; padding: 12px; font-size: 0.9em; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; font-weight: 500; }
+        .rank-1 { background: rgba(212,175,55,0.2); font-weight: bold; }
+        
+        .card-animate { animation: dealIn 0.5s ease-out forwards; opacity: 0; transform: translateY(100px); }
+        @keyframes dealIn { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div id="nb-modal" class="modal"><div class="modal-content">
-    <h3>No Ball Extras</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-        <button onclick="addNoBall(0)">NB+0</button><button onclick="addNoBall(1)">NB+1</button>
-        <button onclick="addNoBall(2)">NB+2</button><button onclick="addNoBall(4)" class="b-4">NB+4</button>
-        <button onclick="addNoBall(6)" class="b-6" style="background:var(--six);color:white">NB+6</button>
+    <div id="lobby" style="text-align:center; padding:100px;">
+        <h1 style="color:var(--gold); font-size: 3em; text-shadow: 2px 2px #000;">Call Break</h1>
+        <p>नेपाली गेम - ५ राउन्डको खेल</p>
+        <input type="text" id="p-name" placeholder="आफ्नो नाम" style="padding:10px; border-radius:5px; border:none;">
+        <input type="text" id="r-id" placeholder="Room ID" style="padding:10px; width:80px; border-radius:5px; border:none;">
+        <button onclick="joinRoom()" style="padding:10px 25px; background:var(--gold); border:none; cursor:pointer; font-weight:bold; border-radius:5px;">JOIN GAME</button>
     </div>
-    <button style="background:#333;color:white;width:100%;margin-top:10px" onclick="closeModal('nb-modal')">Cancel</button>
-</div></div>
 
-<div class="card">
-    <div class="batsman-section">
-        <div id="b1-card" class="batsman-card active-striker" onclick="manualSwap()">
-            <span class="bat-name" id="b1-name">Batsman 1 *</span>
-            <span class="bat-score" id="b1-score">0(0)</span>
+    <div id="game-screen" class="hidden">
+        <div id="table">
+            <div id="center-area"></div>
+            <div class="player-box p-0" id="ui-0"><b>तपाईं</b><div class="info"></div></div>
+            <div class="player-box p-1" id="ui-1"><b>Player 2</b><div class="info"></div></div>
+            <div class="player-box p-2" id="ui-2"><b>Player 3</b><div class="info"></div></div>
+            <div class="player-box p-3" id="ui-3"><b>Player 4</b><div class="info"></div></div>
+
+            <button id="start-btn" class="hidden" onclick="dealCards()" style="position:absolute; top:55%; left:50%; transform:translateX(-50%); padding:15px 40px; background:var(--gold); color:black; border-radius:30px; border:none; cursor:pointer; font-weight:bold; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">तास बाँड्नुहोस्</button>
+
+            <div id="bid-modal" class="hidden">
+                <h3 id="round-ui" style="margin:0; color:var(--blue);">राउन्ड १</h3>
+                <p>कति हात जित्नुहुन्छ? (१-१३)</p>
+                <div id="bid-btns"></div>
+            </div>
+
+            <div id="score-modal" class="hidden">
+                <h2 id="score-title" style="margin-top:0;">📊 स्कोरबोर्ड</h2>
+                <table id="score-table">
+                    <thead><tr><th>स्थान</th><th>खेलाडी</th><th>बिड</th><th>हात</th><th>जम्मा स्कोर</th></tr></thead>
+                    <tbody id="score-body"></tbody>
+                </table>
+                <button id="next-btn" onclick="dealCards()" style="padding:12px 30px; background:var(--green); color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">अर्को राउन्ड</button>
+            </div>
+
+            <div id="hand"><div id="card-inner" style="display:flex;"></div></div>
         </div>
-        <div id="b2-card" class="batsman-card" onclick="manualSwap()">
-            <span class="bat-name" id="b2-name">Batsman 2</span>
-            <span class="bat-score" id="b2-score">0(0)</span>
-        </div>
     </div>
 
-    <div class="score-box">
-        <h1 id="main-score">0 - 0</h1>
-        <div style="font-size: 1.1rem; font-weight: bold;">Overs: <span id="overs-txt">0.0</span></div>
-        <div id="target-ui" style="display:none; font-size:0.9rem; margin-top:8px; background:rgba(255,255,255,0.2); border-radius:8px; padding:5px">
-            Target: <span id="target-val">0</span> | Need: <span id="need-val">0</span>
-        </div>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    <div id="over-history" class="history-container"></div>
+        // तपाईंको Firebase Config
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDKKAxKTFJcMDmj6j21nKHwlSpwAxsw57k",
+            authDomain: "call-breke.firebaseapp.com",
+            databaseURL: "https://call-breke-default-rtdb.firebaseio.com",
+            projectId: "call-breke",
+            storageBucket: "call-breke.firebasestorage.app",
+            messagingSenderId: "908751603046",
+            appId: "1:908751603046:web:fd30e07b9e6400b35c74a7",
+            measurementId: "G-V2D55S47QV" 
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    <div class="controls">
-        <button class="btn-gray" onclick="addRun(0)">0</button>
-        <button class="btn-gray" onclick="addRun(1)">1</button>
-        <button class="btn-gray" onclick="addRun(2)">2</button>
-        <button class="btn-gray" onclick="addRun(3)">3</button>
-        <button class="btn-4" onclick="addRun(4)">4</button>
-        <button class="btn-6" onclick="addRun(6)">6</button>
-        <button class="btn-wd" onclick="addWide()">WD</button>
-        <button class="btn-wd" style="background:#f57c00" onclick="openModal('nb-modal')">NB</button>
-        <button class="btn-wicket" onclick="takeWicket()">WICKET</button>
-        <button class="btn-undo" onclick="undo()">UNDO</button>
-        <button class="btn-action" id="action-btn" onclick="switchInnings()">FINISH INNINGS</button>
-    </div>
-</div>
+        let myId, myName, roomId, mySeat, gameData;
+        const rankVal = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+        const suitIcons = {S:'♠', H:'♥', D:'♦', C:'♣'};
 
-<script>
-    let score = 0, wickets = 0, balls = 0, target = 0, innings = 1, history = [];
-    let b1 = { name: "B1", runs: 0, balls: 0 }, b2 = { name: "B2", runs: 0, balls: 0 };
-    let striker = b1, nonStriker = b2;
+        window.joinRoom = async () => {
+            myName = document.getElementById('p-name').value;
+            roomId = document.getElementById('r-id').value;
+            if(!myName || !roomId) return;
+            myId = myName + "_" + Math.floor(Math.random() * 999);
+            const roomRef = ref(db, 'rooms/' + roomId);
+            const snap = await get(roomRef);
+            if (!snap.val()) {
+                await set(roomRef, { players: [{id: myId, name: myName, host: true, bid: 0, tricks: 0, totalScore: 0}], status: 'waiting', turn: 0, round: 0 });
+            } else {
+                let p = snap.val().players;
+                if(p.length < 4) {
+                    p.push({id: myId, name: myName, bid: 0, tricks: 0, totalScore: 0});
+                    await update(roomRef, { players: p });
+                }
+            }
+            onValue(roomRef, (s) => { gameData = s.val(); if(gameData) sync(); });
+        };
 
-    window.onload = () => {
-        b1.name = prompt("Striker Name:", "Batsman 1") || "B1";
-        b2.name = prompt("Non-Striker Name:", "Batsman 2") || "B2";
-        updateDisplay();
-    };
+        function sync() {
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            mySeat = gameData.players.findIndex(p => p.id === myId);
 
-    function updateDisplay() {
-        document.getElementById('main-score').innerText = `${score} - ${wickets}`;
-        document.getElementById('overs-txt').innerText = `${Math.floor(balls/6)}.${balls%6}`;
-        document.getElementById('b1-name').innerText = b1.name + (striker === b1 ? " *" : "");
-        document.getElementById('b1-score').innerText = `${b1.runs}(${b1.balls})`;
-        document.getElementById('b2-name').innerText = b2.name + (striker === b2 ? " *" : "");
-        document.getElementById('b2-score').innerText = `${b2.runs}(${b2.balls})`;
-        document.getElementById('b1-card').className = `batsman-card ${striker === b1 ? 'active-striker' : ''}`;
-        document.getElementById('b2-card').className = `batsman-card ${striker === b2 ? 'active-striker' : ''}`;
-        if (innings === 2) {
-            document.getElementById('target-ui').style.display = "block";
-            document.getElementById('need-val').innerText = (target - score) > 0 ? (target - score) : "0";
+            gameData.players.forEach((p, i) => {
+                const pos = (i - mySeat + 4) % 4;
+                const ui = document.getElementById(`ui-${pos}`);
+                ui.querySelector('b').innerText = p.name;
+                ui.querySelector('.info').innerText = `Bid:${p.bid} | T:${p.tricks} | ${p.totalScore.toFixed(1)}`;
+                ui.style.borderColor = (gameData.turn === i) ? "var(--gold)" : "rgba(255,255,255,0.2)";
+                ui.style.boxShadow = (gameData.turn === i) ? "0 0 15px var(--gold)" : "none";
+            });
+
+            // Start/Deal Button
+            if (gameData.players[mySeat]?.host && (gameData.status === 'waiting' || gameData.status === 'round_end') && gameData.players.length === 4) 
+                document.getElementById('start-btn').classList.remove('hidden');
+            else document.getElementById('start-btn').classList.add('hidden');
+
+            // Bidding UI
+            const bModal = document.getElementById('bid-modal');
+            if (gameData.status === 'bidding' && gameData.turn === mySeat) {
+                bModal.classList.remove('hidden');
+                document.getElementById('round-ui').innerText = `राउन्ड ${gameData.round}`;
+                const box = document.getElementById('bid-btns'); box.innerHTML = '';
+                for(let i=1; i<=13; i++) {
+                    const b = document.createElement('button'); b.innerText = i; b.className='bid-btn';
+                    b.onclick = () => submitBid(i); box.appendChild(b);
+                }
+            } else bModal.classList.add('hidden');
+
+            // 👑 Scoreboard Ranking UI
+            const sModal = document.getElementById('score-modal');
+            if (gameData.status === 'round_end') {
+                sModal.classList.remove('hidden');
+                const sortedPlayers = [...gameData.players].sort((a, b) => b.totalScore - a.totalScore);
+                const tbody = document.getElementById('score-body'); tbody.innerHTML = '';
+                
+                sortedPlayers.forEach((p, idx) => {
+                    let rankIcon = idx + 1;
+                    if(idx === 0) rankIcon = "👑"; // Winner
+                    if(idx === 1) rankIcon = "🥈"; // 2nd
+                    if(idx === 2) rankIcon = "🥉"; // 3rd
+                    if(idx === 3) rankIcon = "🎗️"; // 4th
+                    
+                    const rowClass = (idx === 0) ? 'rank-1' : '';
+                    tbody.innerHTML += `<tr class="${rowClass}"><td>${rankIcon}</td><td>${p.name}</td><td>${p.bid}</td><td>${p.tricks}</td><td>${p.totalScore.toFixed(1)}</td></tr>`;
+                });
+
+                if(gameData.round >= 5) {
+                    document.getElementById('score-title').innerText = "🏆 फाइनल विनर 🏆";
+                    document.getElementById('next-btn').innerText = "गेम सकियो";
+                    document.getElementById('next-btn').disabled = true;
+                }
+            } else sModal.classList.add('hidden');
+
+            // Cards display
+            const cardBox = document.getElementById('card-inner');
+            if (gameData.status === 'playing' || gameData.status === 'bidding') {
+                const currentHandCount = (gameData.players[mySeat].hand || []).length;
+                if(cardBox.children.length !== currentHandCount) {
+                    cardBox.innerHTML = '';
+                    const sortedHand = (gameData.players[mySeat].hand || []).sort((a,b)=>a.s.localeCompare(b.s) || rankVal[a.r]-rankVal[b.r]);
+                    sortedHand.forEach((c, idx) => {
+                        const div = createCardUI(c);
+                        if(currentHandCount === 13) div.classList.add('card-animate');
+                        div.style.animationDelay = `${idx * 0.1}s`;
+                        div.onclick = () => playCard(c, idx);
+                        cardBox.appendChild(div);
+                    });
+                }
+            } else cardBox.innerHTML = '';
+
+            // Trick Display
+            const center = document.getElementById('center-area'); center.innerHTML = '';
+            (gameData.currentTrick || []).forEach(t => {
+                const cUI = createCardUI(t.card);
+                const pos = (t.pIdx - mySeat + 4) % 4;
+                const styles = [{bottom:'10px', left:'110px'}, {left:'10px', top:'95px'}, {top:'10px', left:'110px'}, {right:'10px', top:'95px'}];
+                cUI.classList.add('played-card'); Object.assign(cUI.style, styles[pos]);
+                center.appendChild(cUI);
+            });
         }
-    }
 
-    function addRun(r) {
-        save(); score += r; striker.runs += r; striker.balls++; balls++;
-        if (r % 2 !== 0) swap(); 
-        if (balls % 6 === 0 && balls > 0) swap();
-        updateLog(r); updateDisplay();
-    }
+        window.dealCards = () => {
+            if(gameData.round >= 5) return;
+            let deck = [];
+            ['S','H','D','C'].forEach(s => ['2','3','4','5','6','7','8','9','10','J','Q','K','A'].forEach(r => deck.push({s, r})));
+            deck.sort(() => Math.random() - 0.5);
+            const p = gameData.players.map((pl, i) => ({ ...pl, hand: deck.slice(i*13, (i+1)*13), bid: 0, tricks: 0 }));
+            update(ref(db, 'rooms/'+roomId), { status:'bidding', players:p, turn:gameData.round % 4, round:gameData.round+1, currentTrick:[], leadSuit:'' });
+        };
 
-    function addWide() { save(); score += 1; updateLog('WD'); updateDisplay(); }
-    function addNoBall(r) {
-        save(); score += (r + 1); striker.runs += r;
-        if (r % 2 !== 0) swap(); updateLog(`NB${r>0?'+'+r:''}`); updateDisplay(); closeModal('nb-modal');
-    }
+  window.submitBid = (n) => {
+    const p = [...gameData.players]; 
+    p[mySeat].bid = n;
+    
+    const allDone = p.every(pl => pl.bid > 0);
+    if (allDone) {
+        const total = p.reduce((a, b) => a + b.bid, 0);
+        
+        if (total < 10) {
+            // १. बिड अनुसारको स्कोर + ०.१ जोड्ने
+            p.forEach(pl => {
+                pl.totalScore += (pl.bid + 0.1);
+                pl.bid = 0; // बिड रिसेट
+                pl.tricks = 0; // ट्रिक्स रिसेट
+            });
+            
+            alert(`जम्मा बिड ${total} मात्र भयो! सबैले (Bid + 0.1) स्कोर पाउनुभयो। अब अर्को राउन्ड सुरु हुँदैछ...`);
+            
+            // २. सिधै नयाँ तास बाँड्ने (यो अर्को राउन्डमा जान्छ र राउन्ड +१ हुन्छ)
+            // यहाँ gameData.round पहिले नै अपडेट भइसकेको हुन्छ, त्यसैले dealCards चल्छ
+            setTimeout(() => {
+                window.dealCardsWithScore(p); // नयाँ फङ्सन जसले स्कोर बोकेर तास बाँड्छ
+            }, 1500);
 
-    function takeWicket() {
-        save(); wickets++; striker.balls++; balls++; updateLog('W');
-        if (wickets < 10) {
-            let n = prompt("Naya Batsman:"); striker.name = n || "B" + (wickets + 2);
-            striker.runs = 0; striker.balls = 0;
+        } else {
+            // यदि १० वा सोभन्दा बढी छ भने सामान्य रूपमा खेल सुरु गर्ने
+            update(ref(db, 'rooms/'+roomId), { 
+                players: p, 
+                turn: (gameData.round - 1) % 4, 
+                status: 'playing' 
+            });
         }
-        if (balls % 6 === 0) swap(); updateDisplay();
+    } else {
+        update(ref(db, 'rooms/'+roomId), { players: p, turn: (mySeat + 1) % 4 });
+    }
+};
+
+// १० कम बिड हुँदा नयाँ तास बाँड्न यो सानो हेल्पर फङ्सन थप्नुहोस्
+window.dealCardsWithScore = (updatedPlayers) => {
+    if(gameData.round >= 5) {
+        update(ref(db, 'rooms/'+roomId), { players: updatedPlayers, status: 'round_end' });
+        return;
+    }
+    let deck = [];
+    ['S','H','D','C'].forEach(s => ['2','3','4','5','6','7','8','9','10','J','Q','K','A'].forEach(r => deck.push({s, r})));
+    deck.sort(() => Math.random() - 0.5);
+    
+    const nextPlayers = updatedPlayers.map((pl, i) => ({ 
+        ...pl, 
+        hand: deck.slice(i*13, (i+1)*13), 
+        bid: 0, 
+        tricks: 0 
+    }));
+
+    update(ref(db, 'rooms/'+roomId), { 
+        status: 'bidding', 
+        players: nextPlayers, 
+        turn: gameData.round % 4, 
+        round: gameData.round + 1, 
+        currentTrick: [], 
+        leadSuit: '' 
+    });
+};
+    window.playCard = (card, idx) => {
+    // ... सुरुका नियमहरू (Lead Suit/Spade check) यथावत राख्नुहोस् ...
+
+    // १. स्थानीय रूपमा हातबाट तास हटाउने (Immediate UI Update)
+    const p = [...gameData.players];
+    const myHand = [...p[mySeat].hand];
+    myHand.splice(idx, 1); // यो तासलाई हातबाट हटाउँछ
+    p[mySeat].hand = myHand;
+
+    const currentTrick = gameData.currentTrick || [];
+    const newTrick = [...currentTrick, { pIdx: mySeat, card }];
+
+    // २. UI मा तुरुन्तै तास लुकाउन (Visual Fix)
+    const cardElements = document.querySelectorAll('#card-inner .card');
+    if (cardElements[idx]) {
+        cardElements[idx].style.display = 'none'; 
     }
 
-    function swap() { [striker, nonStriker] = [nonStriker, striker]; }
-    function manualSwap() { save(); swap(); updateDisplay(); }
+    // ३. डाटाबेस अपडेट गर्ने
+    if (newTrick.length === 4) {
+        // ४ जनाको पालो सकियो भने
+        update(ref(db, 'rooms/' + roomId), { 
+            currentTrick: newTrick, 
+            turn: -1, 
+            players: p 
+        });
+        setTimeout(() => resolveTrick(newTrick, p), 800);
+    } else {
+        // अर्को प्लेयरको पालो
+        update(ref(db, 'rooms/' + roomId), { 
+            players: p, 
+            currentTrick: newTrick, 
+            turn: (mySeat + 1) % 4, 
+            leadSuit: gameData.leadSuit || card.s 
+        });
+    }
+};
 
-    function updateLog(val) {
-        let isL = !isNaN(val) || val === 'W';
-        let oN = isL ? Math.floor((balls - 1) / 6) : Math.floor(balls / 6);
-        let c = document.getElementById('over-history');
-        let oB = document.getElementById(`over-${oN}`);
-        if (!oB) {
-            oB = document.createElement('div'); oB.className = 'over-row'; oB.id = `over-${oN}`;
-            oB.innerHTML = `<div class="over-label">Over ${oN + 1}</div>`; c.prepend(oB);
+                 function resolveTrick(trick, p) {
+            let win = trick[0];
+            trick.forEach(t => {
+                const isT = t.card.s === 'S', winT = win.card.s === 'S';
+                if ((isT && !winT) || (t.card.s === win.card.s && rankVal[t.card.r] > rankVal[win.card.r])) win = t;
+            });
+
+            // Card Collection Animation
+            const winnerSeat = (win.pIdx - mySeat + 4) % 4;
+            const target = document.querySelector(`.p-${winnerSeat}`).getBoundingClientRect();
+            document.querySelectorAll('.played-card').forEach(c => {
+                c.style.transition = "all 0.5s ease-in";
+                c.style.transform = `translate(${target.left - window.innerWidth/2 + 75}px, ${target.top - window.innerHeight/2 + 55}px) scale(0)`;
+                c.style.opacity = "0";
+            });
+
+            setTimeout(() => {
+                p[win.pIdx].tricks++;
+                if (p[0].hand.length === 0) {
+                    p.forEach(pl => {
+                        if (pl.tricks >= pl.bid) pl.totalScore += pl.bid + (pl.tricks - pl.bid) * 0.1;
+                        else pl.totalScore -= pl.bid;
+                    });
+                    update(ref(db, 'rooms/'+roomId), { players: p, status: 'round_end', currentTrick: [], leadSuit: '' });
+                } else {
+                    update(ref(db, 'rooms/'+roomId), { players: p, currentTrick: [], turn: win.pIdx, leadSuit: '' });
+                }
+            }, 600);
         }
-        let b = document.createElement('div');
-        b.className = `ball ${val==4?'b-4':val==6?'b-6':val==='W'?'b-w':isNaN(val)?'b-ex':''}`;
-        b.innerText = val; oB.appendChild(b);
-    }
 
-    function switchInnings() {
-        if(confirm("Next Innings?")) {
-            target = score + 1; innings = 2; score = 0; wickets = 0; balls = 0;
-            b1.runs = 0; b1.balls = 0; b2.runs = 0; b2.balls = 0;
-            b1.name = prompt("Striker Name:") || "B1"; b2.name = prompt("Non-Striker Name:") || "B2";
-            document.getElementById('over-history').innerHTML = ""; updateDisplay();
+        function createCardUI(c) {
+            const div = document.createElement('div');
+            div.className = `card ${ (c.s==='H'||c.s==='D') ? 'red' : '' }`;
+            div.innerHTML = `<div>${c.r}</div><div style="font-size:2em;text-align:center;">${suitIcons[c.s]}</div><div style="transform:rotate(180deg)">${c.r}</div>`;
+            return div;
         }
-    }
-
-    function save() { history.push({s:score, w:wickets, b:balls, b1r:b1.runs, b1b:b1.balls, b2r:b2.runs, b2b:b2.balls, st:striker===b1?'b1':'b2', h:document.getElementById('over-history').innerHTML}); }
-    function undo() {
-        if (history.length > 0) {
-            let l = history.pop(); score = l.s; wickets = l.w; balls = l.b;
-            b1.runs = l.b1r; b1.balls = l.b1b; b2.runs = l.b2r; b2.balls = l.b2b;
-            striker = (l.st === 'b1' ? b1 : b2); nonStriker = (l.st === 'b1' ? b2 : b1);
-            document.getElementById('over-history').innerHTML = l.h; updateDisplay();
-        }
-    }
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-</script>
+    </script>
 </body>
 </html>
