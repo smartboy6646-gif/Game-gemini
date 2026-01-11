@@ -29,10 +29,41 @@
         .played-card { position: absolute; transition: all 0.5s ease-out; }
 
         /* Modals */
-        #bid-modal, #score-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: black; padding: 15px; border-radius: 15px; z-index: 2000; text-align: center; width: 80%; max-width: 350px; }
-        .bid-btn { width: 45px; height: 40px; margin: 3px; cursor: pointer; background: var(--blue); color: white; border: none; border-radius: 5px; font-weight: bold; }
-        
-        table { width: 100%; font-size: 0.8em; border-collapse: collapse; margin-top: 10px; }
+     /* बिड मोडाललाई माथि सार्ने र तास देखिने बनाउने */
+#bid-modal { 
+    position: fixed; 
+    top: 20%; /* ५०% बाट घटाएर २०% मा सारिएको ताकि तलको तास देखियोस् */
+    left: 50%; 
+    transform: translate(-50%, 0); 
+    background: rgba(255, 255, 255, 0.9); /* अलि पारदर्शी बनाइएको */
+    color: black; 
+    padding: 10px; 
+    border-radius: 15px; 
+    z-index: 2000; 
+    text-align: center; 
+    width: 90%; 
+    max-width: 400px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* बिड बटमहरूलाई अझै कम्प्याक्ट बनाउने */
+.bid-btn { 
+    width: 40px; 
+    height: 35px; 
+    margin: 2px; 
+    cursor: pointer; 
+    background: var(--blue); 
+    color: white; 
+    border: none; 
+    border-radius: 5px; 
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* हातमा भएको तासलाई बिडिङको बेला पनि देखिने गरी तह मिलाउने */
+#hand { 
+    z-index: 2100; /* बिड मोडाल भन्दा माथि राख्ने */
+}        table { width: 100%; font-size: 0.8em; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #ddd; padding: 6px; }
         .rank-1 { background: #fff3cd; font-weight: bold; }
 
