@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Call Break Nepali - Mobile Fit</title>
+    <title>Call Break Fullscreen - Mobile</title>
     <style>
         :root { --green: #1a472a; --gold: #d4af37; --red: #e74c3c; --blue: #3498db; }
         body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; margin: 0; overflow: hidden; touch-action: manipulation; }
@@ -11,34 +11,34 @@
         #table { position: relative; width: 100vw; height: 100vh; background: radial-gradient(#2ecc71 10%, #1a472a 90%); overflow: hidden; }
         .hidden { display: none !important; }
 
-        /* Player Boxes - Mobile Optimized */
-        .player-box { position: absolute; text-align: center; width: 100px; padding: 5px; background: rgba(0,0,0,0.8); border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); font-size: 0.75em; z-index: 10; }
-        .p-0 { bottom: 120px; left: 50%; transform: translateX(-50%); border-color: var(--gold); } 
-        .p-1 { left: 10px; top: 45%; transform: translateY(-50%); } 
-        .p-2 { top: 10px; left: 50%; transform: translateX(-50%); } 
-        .p-3 { right: 10px; top: 45%; transform: translateY(-50%); }
+        /* Fullscreen Button */
+        #fs-btn { position: fixed; top: 10px; right: 10px; z-index: 5000; padding: 5px 10px; background: rgba(0,0,0,0.5); color: white; border: 1px solid white; border-radius: 5px; font-size: 12px; cursor: pointer; }
 
-        /* Card Style - Mobile Optimized */
-        .card { width: 58px; height: 85px; background: white; color: black; border-radius: 6px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; box-sizing: border-box; font-weight: bold; font-size: 0.9em; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); }
+        /* Bid Modal - Fixed Position to see cards */
+        #bid-modal { position: fixed; top: 15%; left: 50%; transform: translate(-50%, 0); background: rgba(255, 255, 255, 0.95); color: black; padding: 10px; border-radius: 15px; z-index: 3000; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .bid-btn { width: 42px; height: 38px; margin: 2px; cursor: pointer; background: var(--blue); color: white; border: none; border-radius: 5px; font-weight: bold; }
+
+        /* Player Boxes */
+        .player-box { position: absolute; text-align: center; width: 90px; padding: 4px; background: rgba(0,0,0,0.8); border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); font-size: 0.7em; z-index: 10; }
+        .p-0 { bottom: 110px; left: 50%; transform: translateX(-50%); border-color: var(--gold); } 
+        .p-1 { left: 8px; top: 45%; transform: translateY(-50%); } 
+        .p-2 { top: 8px; left: 50%; transform: translateX(-50%); } 
+        .p-3 { right: 8px; top: 45%; transform: translateY(-50%); }
+
+        /* Cards */
+        .card { width: 55px; height: 82px; background: white; color: black; border-radius: 6px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; box-sizing: border-box; font-weight: bold; font-size: 0.85em; box-shadow: 2px 2px 5px rgba(0,0,0,0.4); }
         .card.red { color: var(--red); }
-        #hand { position: absolute; bottom: 10px; width: 100%; display: flex; justify-content: center; height: 100px; z-index: 100; pointer-events: auto; }
-        #hand .card { margin-left: -28px; cursor: pointer; transition: 0.2s; }
-        #hand .card:active { transform: translateY(-20px); }
+        #hand { position: absolute; bottom: 8px; width: 100%; display: flex; justify-content: center; height: 90px; z-index: 3100; pointer-events: auto; }
+        #hand .card { margin-left: -28px; cursor: pointer; }
 
-        #center-area { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; }
+        #center-area { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 180px; height: 180px; }
         .played-card { position: absolute; transition: all 0.5s ease-out; }
 
-        /* Modals */
-     /* बिड मोडाललाई माथि सार्ने र तास देखिने बनाउने */
-
-/* हातमा भएको तासलाई बिडिङको बेला पनि देखिने गरी तह मिलाउने */
-#hand { 
-    z-index: 2100; /* बिड मोडाल भन्दा माथि राख्ने */
-}        table { width: 100%; font-size: 0.8em; border-collapse: collapse; margin-top: 10px; }
-        th, td { border-bottom: 1px solid #ddd; padding: 6px; }
+        #score-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: black; padding: 15px; border-radius: 15px; z-index: 4000; text-align: center; width: 85%; max-width: 320px; }
+        table { width: 100%; font-size: 0.75em; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #ddd; padding: 5px; }
         .rank-1 { background: #fff3cd; font-weight: bold; }
 
-        /* Rotate Notice */
         #rotate-notice { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f2027; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
         @media (orientation: portrait) { #rotate-notice { display: flex; } }
     </style>
@@ -46,15 +46,17 @@
 <body>
 
     <div id="rotate-notice">
-        <div style="font-size: 50px;">🔄</div>
+        <div style="font-size: 40px;">🔄</div>
         <h3 style="text-align:center;">कृपया फोन तेर्सो (Landscape) बनाउनुहोस्</h3>
     </div>
 
-    <div id="lobby" style="text-align:center; padding-top:50px;">
-        <h1 style="color:var(--gold)">नेपाली Call Break</h1>
-        <input type="text" id="p-name" placeholder="नाम" style="padding:8px;">
-        <input type="text" id="r-id" placeholder="Room ID" style="padding:8px; width:60px;">
-        <button onclick="joinRoom()" style="padding:10px 20px; background:var(--gold); border:none; font-weight:bold;">JOIN</button>
+    <button id="fs-btn" onclick="toggleFullScreen()">Fullscreen ⛶</button>
+
+    <div id="lobby" style="text-align:center; padding-top:40px;">
+        <h1 style="color:var(--gold)">Nepali Call Break</h1>
+        <input type="text" id="p-name" placeholder="Name" style="padding:10px;">
+        <input type="text" id="r-id" placeholder="Room ID" style="padding:10px; width:60px;">
+        <button onclick="joinRoom()" style="padding:12px 25px; background:var(--gold); border:none; font-weight:bold; cursor:pointer;">JOIN GAME</button>
     </div>
 
     <div id="game-screen" class="hidden">
@@ -68,17 +70,18 @@
             <button id="start-btn" class="hidden" onclick="dealCards()" style="position:absolute; top:55%; left:50%; transform:translateX(-50%); padding:12px 30px; background:var(--gold); border-radius:20px; border:none; font-weight:bold; z-index:100;">DEAL CARDS</button>
 
             <div id="bid-modal" class="hidden">
-                <h3 id="round-txt">राउन्ड १</h3>
+                <h3 id="round-txt" style="margin:5px;">राउन्ड १</h3>
+                <p style="font-size:12px; margin:2px;">आफ्नो तास हेरेर बिड रोज्नुहोस्</p>
                 <div id="bid-btns"></div>
             </div>
 
             <div id="score-modal" class="hidden">
-                <h3 id="score-title">नतिजा</h3>
+                <h3 id="score-title" style="margin:5px;">📊 नतिजा</h3>
                 <table>
                     <thead><tr><th>#</th><th>Name</th><th>Bid</th><th>T</th><th>Score</th></tr></thead>
                     <tbody id="score-body"></tbody>
                 </table>
-                <button id="next-btn" onclick="dealCards()" style="margin-top:10px; padding:10px; background:var(--green); color:white; border:none; width:100%;">अर्को राउन्ड</button>
+                <button id="next-btn" onclick="dealCards()" style="margin-top:10px; padding:10px; background:var(--green); color:white; border:none; width:100%; border-radius:5px; font-weight:bold;">अर्को राउन्ड</button>
             </div>
 
             <div id="hand"><div id="card-inner" style="display:flex;"></div></div>
@@ -89,6 +92,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // Firebase Config (Keep your own config here)
         const firebaseConfig = { 
             apiKey: "AIzaSyDKKAxKTFJcMDmj6j21nKHwlSpwAxsw57k",
             authDomain: "call-breke.firebaseapp.com",
@@ -106,10 +110,23 @@
         const rankVal = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
         const suitIcons = {S:'♠', H:'♥', D:'♦', C:'♣'};
 
+        // Fullscreen Toggle
+        window.toggleFullScreen = () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => console.log(e));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        };
+
         window.joinRoom = async () => {
             myName = document.getElementById('p-name').value;
             roomId = document.getElementById('r-id').value;
             if(!myName || !roomId) return;
+            
+            // Auto-request fullscreen on join
+            try { document.documentElement.requestFullscreen(); } catch(e) {}
+
             myId = myName + "_" + Math.floor(Math.random() * 99);
             const rRef = ref(db, 'rooms/' + roomId);
             const snap = await get(rRef);
@@ -134,8 +151,9 @@
                 const pos = (i - mySeat + 4) % 4;
                 const ui = document.getElementById(`ui-${pos}`);
                 ui.querySelector('b').innerText = p.name;
-                ui.querySelector('.info').innerText = `C:${p.bid} | T:${p.tricks} | S:${p.totalScore.toFixed(1)}`;
+                ui.querySelector('.info').innerText = `B:${p.bid} | T:${p.tricks} | S:${p.totalScore.toFixed(1)}`;
                 ui.style.borderColor = (gameData.turn === i) ? "var(--gold)" : "rgba(255,255,255,0.2)";
+                ui.style.boxShadow = (gameData.turn === i) ? "0 0 10px var(--gold)" : "none";
             });
 
             if (gameData.players[mySeat]?.host && (gameData.status === 'waiting' || gameData.status === 'round_end') && gameData.players.length === 4) 
@@ -159,16 +177,17 @@
                 const sorted = [...gameData.players].sort((a,b) => b.totalScore - a.totalScore);
                 const tbody = document.getElementById('score-body'); tbody.innerHTML = '';
                 sorted.forEach((p, idx) => {
-                    let rank = idx + 1;
-                    if(idx === 0) rank = "👑"; if(idx === 1) rank = "🥈";
-                    tbody.innerHTML += `<tr class="${idx===0?'rank-1':''}"><td>${rank}</td><td>${p.name}</td><td>${p.bid}</td><td>${p.tricks}</td><td>${p.totalScore.toFixed(1)}</td></tr>`;
+                    let r = idx + 1;
+                    if(idx === 0) r = "👑"; if(idx === 1) r = "🥈";
+                    tbody.innerHTML += `<tr class="${idx===0?'rank-1':''}"><td>${r}</td><td>${p.name}</td><td>${p.bid}</td><td>${p.tricks}</td><td>${p.totalScore.toFixed(1)}</td></tr>`;
                 });
                 if(gameData.round >= 5) {
-                    document.getElementById('score-title').innerText = "🏆 Final Score 🏆";
+                    document.getElementById('score-title').innerText = "🏆 Final Champion 🏆";
                     document.getElementById('next-btn').classList.add('hidden');
                 }
             } else sModal.classList.add('hidden');
 
+            // Glitch Fix: Check hand length strictly
             const cardBox = document.getElementById('card-inner');
             const hData = gameData.players[mySeat].hand || [];
             if (cardBox.children.length !== hData.length) {
@@ -185,7 +204,7 @@
             (gameData.currentTrick || []).forEach(t => {
                 const cUI = createCardUI(t.card);
                 const pos = (t.pIdx - mySeat + 4) % 4;
-                const styles = [{bottom:'5px', left:'70px'}, {left:'5px', top:'60px'}, {top:'5px', left:'70px'}, {right:'5px', top:'60px'}];
+                const styles = [{bottom:'5px', left:'65px'}, {left:'5px', top:'50px'}, {top:'5px', left:'65px'}, {right:'5px', top:'50px'}];
                 cUI.classList.add('played-card'); Object.assign(cUI.style, styles[pos]);
                 center.appendChild(cUI);
             });
@@ -206,8 +225,8 @@
                 const total = p.reduce((a, b) => a + b.bid, 0);
                 if (total < 10) {
                     p.forEach(pl => { pl.totalScore += (pl.bid + 0.1); pl.bid = 0; pl.tricks = 0; });
-                    alert(`जम्मा कल ${total} भयो! Bonus (+0.1) सहित अर्को राउन्ड सुरु हुन्छ।`);
-                    setTimeout(() => window.dealCardsWithScore(p), 1000);
+                    alert(`जम्मा बिड ${total} भयो। बोनस स्कोर थपेर अर्को राउन्ड सुरु हुँदैछ!`);
+                    setTimeout(() => window.dealCardsWithScore(p), 1200);
                 } else {
                     update(ref(db, 'rooms/'+roomId), { players: p, turn: (gameData.round - 1) % 4, status: 'playing' });
                 }
@@ -244,16 +263,17 @@
                     if (card.s !== lead) { alert(`${suitIcons[lead]} फाल्नुहोस्!`); return; }
                     if (winT.card.s === lead) {
                         const canWin = hand.some(c => c.s===lead && rankVal[c.r]>rankVal[winT.card.r]);
-                        if (canWin && rankVal[card.r]<rankVal[winT.card.r]) { alert("जित्ने तास फाल्नुहोस्!"); return; }
+                        if (canWin && rankVal[card.r]<rankVal[winT.card.r]) { alert("ठूलो तास फाल्नुहोस्!"); return; }
                     }
                 } else if (hasSpade) {
                     if (winT.card.s === 'S') {
                         const canWinS = hand.some(c => c.s==='S' && rankVal[c.r]>rankVal[winT.card.r]);
-                        if (canWinS && (card.s!=='S' || rankVal[card.r]<rankVal[winT.card.r])) { alert("ठूलो हुकुम फाल्नुहोस्!"); return; }
+                        if (canWinS && (card.s!=='S' || rankVal[card.r]<rankVal[winT.card.r])) { alert("जित्ने हुकुम फाल्नुहोस्!"); return; }
                     } else if (card.s !== 'S') { alert("हुकुमले काट्नुहोस्!"); return; }
                 }
             }
 
+            // Fix: Clear from UI immediately
             const p = [...gameData.players];
             const myH = [...p[mySeat].hand];
             myH.splice(idx, 1);
@@ -265,7 +285,7 @@
             update(ref(db, 'rooms/'+roomId), { players: p, currentTrick: newT, turn: nextTurn, leadSuit: lead || card.s });
 
             if (newT.length === 4) setTimeout(() => resolveTrick(newT, p), 800);
-        };
+        }
 
         function resolveTrick(trick, p) {
             let win = trick[0];
@@ -288,7 +308,7 @@
         function createCardUI(c) {
             const div = document.createElement('div');
             div.className = `card ${ (c.s==='H'||c.s==='D') ? 'red' : '' }`;
-            div.innerHTML = `<div>${c.r}</div><div style="font-size:1.8em;text-align:center;">${suitIcons[c.s]}</div><div style="transform:rotate(180deg)">${c.r}</div>`;
+            div.innerHTML = `<div>${c.r}</div><div style="font-size:1.6em;text-align:center;">${suitIcons[c.s]}</div><div style="transform:rotate(180deg)">${c.r}</div>`;
             return div;
         }
     </script>
