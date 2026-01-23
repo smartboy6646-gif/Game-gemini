@@ -1,231 +1,486 @@
-<!DOCTYPE html>
-<html lang="ne">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Call Break Online – Final Stable</title>
+  <meta charset="utf-8" />
+  <title>Dots & Boxes (Mobile Fixed)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    body, html { height: 100%; margin: 0; background: #f0f2f5; font-family: sans-serif; overflow: hidden; }
+    #game-container { width: 100%; height: 100vh; touch-action: none; }
+    
+    /* UI Styling */
+    .ui-panel {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 100;
+      text-align: center;
+      width: 85%;
+      max-width: 320px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
 
-<style>
-:root{--green:#1a472a;--gold:#d4af37;--red:#e74c3c;}
-html,body{margin:0;height:100%;overflow:hidden;font-family:Segoe UI;background:#0b3d2e;color:#fff}
-#rotate{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;font-size:22px}
-@media (orientation:portrait){#rotate{display:flex}}
-#fs{position:fixed;top:10px;right:10px;z-index:5000}
+    .top-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 90;
+    }
 
-#lobby,#game{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column}
-input,button{padding:10px;font-size:16px;border-radius:8px;border:none}
+    .bottom-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 70px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      border-top: 1px solid #eee;
+      z-index: 90;
+    }
 
-#table{position:relative;width:100vw;height:100vh;background:radial-gradient(#2ecc71,#1a472a)}
-.player{position:absolute;width:120px;background:rgba(0,0,0,.6);padding:6px;border-radius:8px;text-align:center;font-size:13px;border:2px solid rgba(255,255,255,.15)}
-.me{border-color:var(--gold)}
-.bottom{bottom:110px;left:50%;transform:translateX(-50%)}
-.left{left:8px;top:45%;transform:translateY(-50%)}
-.top{top:8px;left:50%;transform:translateX(-50%)}
-.right{right:8px;top:45%;transform:translateY(-50%)}
-
-#hand{position:absolute;bottom:5px;width:100%;display:flex;justify-content:center}
-.card{width:56px;height:86px;background:#fff;color:#000;border-radius:8px;padding:5px;margin-left:-28px;font-weight:bold;cursor:pointer}
-.card.red{color:var(--red)}
-
-#center{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px}
-
-.modal{position:fixed;top:15%;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:12px;border-radius:12px;z-index:3000}
-.hidden{display:none}
-</style>
+    /* Inputs & Buttons */
+    input, select { padding: 10px; margin: 5px 0; width: 90%; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+    button { 
+      padding: 10px 20px; margin: 5px; 
+      background: #2f7bff; color: white; border: none; 
+      border-radius: 6px; font-size: 16px; cursor: pointer; 
+      width: 100%;
+    }
+    button:active { transform: scale(0.98); }
+    button.secondary { background: #6c757d; }
+    
+    .score-badge { font-weight: bold; padding: 5px 10px; border-radius: 15px; color: white; font-size: 14px; }
+    .bg-red { background: #ff4444; }
+    .bg-blue { background: #2f7bff; }
+    
+    .hidden { display: none !important; }
+  </style>
 </head>
-
 <body>
 
-<div id="rotate">📱 फोन Landscape मा राख्नुहोस्</div>
-<button id="fs" onclick="fullscreen()">⛶</button>
+  <div id="game-container"></div>
 
-<div id="lobby">
-  <h2>Call Break Online</h2>
-  <input id="name" placeholder="Name">
-  <input id="room" placeholder="Room ID">
-  <button onclick="createRoom()">Create</button>
-  <button onclick="joinRoom()">Join</button>
-</div>
+  <div id="lobbyUI" class="ui-panel">
+    <h2>Dots & Boxes</h2>
+    <input id="displayName" placeholder="Enter Your Name" maxlength="10" />
+    
+    <div style="margin: 10px 0; text-align: left;">
+      <label style="font-size: 12px; color: #666;">Grid Size:</label>
+      <select id="gridSize">
+        <option value="3">3 x 3 (Small)</option>
+        <option value="4" selected>4 x 4 (Normal)</option>
+        <option value="5">5 x 5 (Medium)</option>
+        <option value="6">6 x 6 (Large)</option>
+        <option value="8">8 x 8 (Expert)</option>
+      </select>
+    </div>
 
-<div id="game" class="hidden">
-  <div id="table">
-    <div id="center"></div>
-
-    <div id="p0" class="player bottom me"></div>
-    <div id="p1" class="player left"></div>
-    <div id="p2" class="player top"></div>
-    <div id="p3" class="player right"></div>
-
-    <button id="deal" onclick="deal()" class="hidden" style="position:absolute;top:55%;left:50%;transform:translateX(-50%)">DEAL</button>
-
-    <div id="bidBox" class="modal hidden"></div>
-    <div id="hand"></div>
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;" />
+    
+    <button id="createRoomBtn">Create New Room</button>
+    
+    <div style="display: flex; gap: 5px; margin-top: 10px;">
+      <input id="joinCode" placeholder="Room Code" style="margin:0; width:60%; text-transform:uppercase;" maxlength="6" />
+      <button id="joinRoomBtn" style="margin:0; width:40%;">Join</button>
+    </div>
   </div>
-</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, update, onValue, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  <div id="gameUI_Top" class="top-bar hidden">
+    <div>
+      <div style="font-size:12px; color:#888;">Room: <b id="roomLabel" style="color:#000;">---</b></div>
+      <div style="font-size:14px; font-weight:bold;">Turn: <span id="turnLabel" style="color:#2f7bff">Waiting...</span></div>
+    </div>
+    <div style="text-align: right;">
+      <div class="score-badge bg-red">Red: <span id="scoreRed">0</span></div>
+      <div class="score-badge bg-blue" style="margin-top:2px;">Blue: <span id="scoreBlue">0</span></div>
+    </div>
+  </div>
 
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig = {apiKey: "AIzaSyDKKAxKTFJcMDmj6j21nKHwlSpwAxsw57k",
-  authDomain: "call-breke.firebaseapp.com",
-  databaseURL: "https://call-breke-default-rtdb.firebaseio.com",
-  projectId: "call-breke",
-  storageBucket: "call-breke.firebasestorage.app",
-  messagingSenderId: "908751603046",
-  appId: "1:908751603046:web:fd30e07b9e6400b35c74a7",
-  measurementId: "G-V2D55S47QV"
-};
+  <div id="gameUI_Bottom" class="bottom-bar hidden">
+    <div style="text-align: center;">
+      <div style="font-size:10px; color:#666;">DICE</div>
+      <div id="diceVal" style="font-size:24px; font-weight:bold;">-</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size:10px; color:#666;">LINES LEFT</div>
+      <div id="linesLeft" style="font-size:24px; font-weight:bold; color:#d00;">0</div>
+    </div>
+    <div>
+      <button id="rollBtn" style="width: auto; padding: 8px 16px;">Roll Dice</button>
+    </div>
+    <div>
+      <button id="leaveBtn" class="secondary" style="width: auto; padding: 8px 12px;">Exit</button>
+    </div>
+  </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-/* STATE */
-let myId,myName,roomId,roomRef,game;
+  <script>
+  /**
+   * ----------------------------------------------------
+   * १. यहाँ आफ्नो FIREBASE CONFIG राख्नुहोला
+   * ----------------------------------------------------
+   */
+  const FIREBASE_CONFIG = {
+    apiKey: "YOUR_API_KEY_HERE",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
 
-/* UTILS */
-const suits=['S','H','D','C'];
-const ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-const val=r=>r=='A'?14:r=='K'?13:r=='Q'?12:r=='J'?11:+r;
-const icon=s=>({S:'♠',H:'♥',D:'♦',C:'♣'})[s];
-
-/* FULLSCREEN */
-window.fullscreen=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
-
-/* CREATE ROOM */
-window.createRoom=()=>{
-  myName=name.value.trim(); if(!myName)return;
-  myId=myName+"_"+Math.random().toString(36).slice(2,7);
-  roomId=(room.value||Math.random().toString(36).slice(2,7)).toUpperCase();
-  roomRef=ref(db,'rooms/'+roomId);
-
-  set(roomRef,{
-    order:[myId],
-    players:{[myId]:{name:myName,hand:[],bid:0,tricks:0,score:0}},
-    status:'waiting',
-    turn:0,
-    round:0
-  }).then(startListen);
-}
-
-/* JOIN ROOM (TRANSACTION SAFE) */
-window.joinRoom=async()=>{
-  myName=name.value.trim(); roomId=room.value.trim().toUpperCase();
-  if(!myName||!roomId)return;
-  myId=myName+"_"+Math.random().toString(36).slice(2,7);
-  roomRef=ref(db,'rooms/'+roomId);
-
-  await runTransaction(roomRef,(r)=>{
-    if(!r||r.order.length>=4)return r;
-    r.order.push(myId);
-    r.players[myId]={name:myName,hand:[],bid:0,tricks:0,score:0};
-    return r;
-  });
-  startListen();
-}
-
-/* DISCONNECT FIX */
-function startListen(){
-  onDisconnect(ref(db,`rooms/${roomId}/players/${myId}`)).remove();
-
-  onValue(roomRef,s=>{
-    if(!s.val())location.reload();
-    game=s.val();
-    render();
-  });
-
-  lobby.classList.add('hidden');
-  gameDiv.classList.remove('hidden');
-  document.documentElement.requestFullscreen().catch(()=>{});
-}
-
-/* RENDER */
-function render(){
-  const idx=game.order.indexOf(myId);
-  if(idx===-1)return location.reload();
-
-  game.order.forEach((id,i)=>{
-    const ui=document.getElementById('p'+((i-idx+4)%4));
-    const p=game.players[id];
-    ui.innerHTML=`<b>${id===myId?'You':p.name}</b><br>B:${p.bid} T:${p.tricks} S:${p.score.toFixed(1)}`;
-    ui.style.borderColor=(game.turn===i)?'var(--gold)':'rgba(255,255,255,.15)';
-  });
-
-  deal.classList.toggle('hidden',!(idx===0 && (game.status==='waiting'||game.status==='round_end') && game.order.length===4));
-
-  renderHand(game.players[myId].hand);
-
-  if(game.status==='bidding' && game.order[game.turn]===myId) showBid();
-  else bidBox.classList.add('hidden');
-}
-
-/* DEAL */
-window.deal=()=>{
-  let deck=[];
-  suits.forEach(s=>ranks.forEach(r=>deck.push({s,r})));
-  deck.sort(()=>Math.random()-.5);
-  game.order.forEach((id,i)=>{
-    game.players[id].hand=deck.slice(i*13,(i+1)*13);
-    game.players[id].bid=0; game.players[id].tricks=0;
-  });
-  update(roomRef,{players:game.players,status:'bidding',turn:0,round:game.round+1});
-}
-
-/* BID */
-function showBid(){
-  bidBox.innerHTML='<h3>Bid</h3>';
-  for(let i=1;i<=13;i++){
-    const b=document.createElement('button');
-    b.innerText=i;
-    b.onclick=()=>submitBid(i);
-    bidBox.appendChild(b);
+  if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
+    alert("तपाईँले कोडमा Firebase Config राख्नुभएको छैन! कृपया कोड खोलेर आफ्नो API KEY राख्नुहोस्।");
   }
-  bidBox.classList.remove('hidden');
-}
 
-function submitBid(n){
-  if(game.order[game.turn]!==myId)return; // HARD TURN CHECK
-  game.players[myId].bid=n;
-  const next=(game.turn+1)%4;
-  const all=game.order.every(id=>game.players[id].bid>0);
-  update(roomRef,all?{players:game.players,status:'playing',turn:game.turn}:{players:game.players,turn:next});
-}
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.database();
+  const auth = firebase.auth();
 
-/* HAND */
-function renderHand(hand){
-  handDiv.innerHTML='';
-  hand.forEach(c=>{
-    const d=document.createElement('div');
-    d.className='card'+((c.s==='H'||c.s==='D')?' red':'');
-    d.innerHTML=`${c.r}<div style="font-size:22px">${icon(c.s)}</div>`;
-    d.onclick=()=>play(c);
-    handDiv.appendChild(d);
-  });
-}
+  let myUid = null;
+  auth.signInAnonymously().catch(e => alert("Auth Error: " + e.message));
+  auth.onAuthStateChanged(u => { if(u) myUid = u.uid; });
 
-/* PLAY CARD – HARD VALIDATION */
-function play(card){
-  if(game.status!=='playing')return;
-  if(game.order[game.turn]!==myId)return;
+  // Variables
+  let currentRoom = null;
+  let roomData = null;
+  let listenerRef = null;
+  let gameInstance = null;
+  
+  // DOM Elements
+  const lobbyUI = document.getElementById('lobbyUI');
+  const gameUI_Top = document.getElementById('gameUI_Top');
+  const gameUI_Bottom = document.getElementById('gameUI_Bottom');
 
-  const h=game.players[myId].hand;
-  const i=h.findIndex(c=>c.s===card.s&&c.r===card.r);
-  if(i<0)return;
+  // Helper
+  const randCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
-  h.splice(i,1);
-  const trick=game.trick||[];
-  trick.push({p:game.turn,card});
-  update(roomRef,{players:game.players,trick,turn:(game.turn+1)%4});
-}
+  // --- LOBBY LOGIC ---
+  document.getElementById('createRoomBtn').onclick = async () => {
+    if (!myUid) return alert("Connecting to server... wait a sec");
+    const code = randCode();
+    const name = document.getElementById('displayName').value || 'Player 1';
+    const size = parseInt(document.getElementById('gridSize').value);
+    
+    await db.ref('rooms/' + code).set({
+      grid: { rows: size, cols: size },
+      players: { [myUid]: { name, color: 'red' } },
+      state: 'waiting',
+      turnUid: myUid,
+      dice: { val: 0, rem: 0 },
+      edges: {}, boxes: {}, scores: { red: 0, blue: 0 }
+    });
+    enterRoom(code);
+  };
 
-/* DOM */
-const lobby=document.getElementById('lobby');
-const gameDiv=document.getElementById('game');
-const handDiv=document.getElementById('hand');
-const bidBox=document.getElementById('bidBox');
-const deal=document.getElementById('deal');
+  document.getElementById('joinRoomBtn').onclick = async () => {
+    const code = document.getElementById('joinCode').value.toUpperCase().trim();
+    if(!code) return alert("Room code needed");
+    const snap = await db.ref('rooms/' + code).once('value');
+    if(!snap.exists()) return alert("Room not found");
+    const r = snap.val();
+    if(Object.keys(r.players || {}).length >= 2) return alert("Room full");
+    
+    const name = document.getElementById('displayName').value || 'Player 2';
+    await db.ref(`rooms/${code}/players/${myUid}`).set({ name, color: 'blue' });
+    await db.ref(`rooms/${code}`).update({ state: 'playing' }); // Start game
+    enterRoom(code);
+  };
 
-</script>
+  document.getElementById('leaveBtn').onclick = () => {
+    if(currentRoom) {
+      db.ref(`rooms/${currentRoom}`).off(); // Stop listening
+      db.ref(`rooms/${currentRoom}/players/${myUid}`).remove();
+    }
+    location.reload(); // Simple reload to reset
+  };
+
+  function enterRoom(code) {
+    currentRoom = code;
+    lobbyUI.classList.add('hidden');
+    gameUI_Top.classList.remove('hidden');
+    gameUI_Bottom.classList.remove('hidden');
+    document.getElementById('roomLabel').innerText = code;
+    
+    if(!gameInstance) initPhaser();
+    
+    listenerRef = db.ref('rooms/' + code);
+    listenerRef.on('value', snap => {
+      roomData = snap.val();
+      if(!roomData) { alert("Room closed"); location.reload(); return; }
+      updateUI();
+      if(gameInstance) gameInstance.scene.scenes[0].drawBoard();
+    });
+  }
+
+  function updateUI() {
+    const scores = roomData.scores || {red:0, blue:0};
+    document.getElementById('scoreRed').innerText = scores.red;
+    document.getElementById('scoreBlue').innerText = scores.blue;
+    
+    const dice = roomData.dice || {val:0, rem:0};
+    document.getElementById('diceVal').innerText = dice.val;
+    document.getElementById('linesLeft').innerText = dice.rem;
+    
+    const turnUid = roomData.turnUid;
+    const players = roomData.players || {};
+    const turnPlayer = players[turnUid];
+    
+    if (turnPlayer) {
+      const isMe = (turnUid === myUid);
+      document.getElementById('turnLabel').innerText = isMe ? "YOUR TURN" : turnPlayer.name + "'s Turn";
+      document.getElementById('turnLabel').style.color = turnPlayer.color === 'red' ? '#d00' : '#2f7bff';
+      
+      // Dice Button logic
+      const btn = document.getElementById('rollBtn');
+      if (isMe && dice.rem === 0) {
+         btn.disabled = false;
+         btn.style.opacity = 1;
+         btn.innerText = "ROLL DICE";
+      } else {
+         btn.disabled = true;
+         btn.style.opacity = 0.5;
+         btn.innerText = (isMe && dice.rem > 0) ? "DRAW LINES" : "WAITING";
+      }
+    }
+  }
+
+  // --- DICE ROLL ---
+  document.getElementById('rollBtn').onclick = () => {
+    if(!roomData || roomData.turnUid !== myUid) return;
+    const roll = Math.floor(Math.random() * 6) + 1;
+    
+    db.ref(`rooms/${currentRoom}`).transaction(curr => {
+      if(!curr || curr.turnUid !== myUid) return;
+      if(curr.dice && curr.dice.rem > 0) return; // Already has lines
+      
+      curr.dice = { val: roll, rem: roll };
+      return curr;
+    });
+  };
+
+  // --- PHASER GAME ---
+  function initPhaser() {
+    gameInstance = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: 'game-container',
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: '#f0f2f5',
+      scale: { mode: Phaser.Scale.RESIZE }, // Dynamic resize
+      scene: { create, resize: drawBoard } // Use drawBoard directly on resize
+    });
+  }
+
+  let graphics;
+  let scenePtr;
+
+  function create() {
+    scenePtr = this;
+    graphics = this.add.graphics();
+    this.scale.on('resize', drawBoard, this);
+    drawBoard();
+  }
+
+  function drawBoard() {
+    if(!scenePtr || !roomData) return;
+    const g = graphics;
+    g.clear();
+    scenePtr.input.mouse.manager.enabled = true; // Ensure input works
+
+    const { width, height } = scenePtr.scale;
+    
+    // १. ग्रिडको साइज अनुसार मोबाइलमा फिट हुने गरी मिलाउने (Dynamic Scaling)
+    const rows = roomData.grid.rows;
+    const cols = roomData.grid.cols;
+    
+    // UI को लागि माथि र तल ठाउँ छोड्ने
+    const topPad = 80; 
+    const botPad = 90;
+    const availW = width - 40; // 20px margin side
+    const availH = height - (topPad + botPad);
+    
+    // बक्सको साइज निकाल्ने
+    const cellSize = Math.min(availW / cols, availH / rows);
+    const dotRadius = Math.max(4, cellSize * 0.1);
+    
+    // बोर्डलाई सेन्टरमा राख्ने
+    const startX = (width - (cols * cellSize)) / 2;
+    const startY = topPad + (availH - (rows * cellSize)) / 2;
+
+    // --- DRAW BOX FILLS ---
+    const boxes = roomData.boxes || {};
+    for(let r=0; r<rows; r++) {
+      for(let c=0; c<cols; c++) {
+        const owner = boxes[`${r}_${c}`];
+        if(owner) {
+          g.fillStyle(owner === 'red' ? 0xffaaaa : 0xaaddff, 0.5);
+          g.fillRect(startX + c*cellSize, startY + r*cellSize, cellSize, cellSize);
+          // Small mark
+          g.fillStyle(owner === 'red' ? 0xff0000 : 0x0000ff, 1);
+          g.fillCircle(startX + c*cellSize + cellSize/2, startY + r*cellSize + cellSize/2, 4);
+        }
+      }
+    }
+
+    // --- DRAW LINES & CLICK ZONES ---
+    // Horizontal
+    for(let r=0; r<=rows; r++) {
+      for(let c=0; c<cols; c++) {
+        const id = `h_${r}_${c}`;
+        const x1 = startX + c*cellSize;
+        const y1 = startY + r*cellSize;
+        const x2 = x1 + cellSize;
+        const y2 = y1;
+        drawEdge(id, x1, y1, x2, y2, cellSize, true);
+      }
+    }
+    // Vertical
+    for(let r=0; r<rows; r++) {
+      for(let c=0; c<=cols; c++) {
+        const id = `v_${r}_${c}`;
+        const x1 = startX + c*cellSize;
+        const y1 = startY + r*cellSize;
+        const x2 = x1;
+        const y2 = y1 + cellSize;
+        drawEdge(id, x1, y1, x2, y2, cellSize, false);
+      }
+    }
+
+    // --- DRAW DOTS ---
+    g.fillStyle(0x333333, 1);
+    for(let r=0; r<=rows; r++) {
+      for(let c=0; c<=cols; c++) {
+        g.fillCircle(startX + c*cellSize, startY + r*cellSize, dotRadius);
+      }
+    }
+  }
+
+  // Interactive Line Drawer
+  let interactives = {}; // Store zones to clear them
+  
+  function drawEdge(id, x1, y1, x2, y2, size, isHoriz) {
+    const edges = roomData.edges || {};
+    const owner = edges[id] ? edges[id].owner : null;
+    
+    // Draw visual line
+    graphics.lineStyle(owner ? size * 0.15 : 2, owner === 'red' ? 0xff0000 : (owner === 'blue' ? 0x0000ff : 0xdddddd));
+    graphics.beginPath(); graphics.moveTo(x1,y1); graphics.lineTo(x2,y2); graphics.strokePath();
+
+    // Create Click Zone (Invisible Hitbox)
+    // We recreate zones every draw to handle resize properly. 
+    // Ideally we pool them, but for this simple game, clearing is okay.
+    if(!interactives[id]) {
+        // Create only if not exists (but here we clear screen often, so simplified)
+    }
+    // Simple approach: Use a Zone for each redraw
+    const mx = (x1+x2)/2;
+    const my = (y1+y2)/2;
+    const w = isHoriz ? size : size * 0.4;
+    const h = isHoriz ? size * 0.4 : size;
+    
+    // Add transparent interactive rect
+    const zone = scenePtr.add.rectangle(mx, my, w, h, 0xffffff, 0) // alpha 0
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => attemptClaim(id));
+        
+    // Clean up old zones? In this simple resize loop, Phaser manages scenes, 
+    // but for performance in big games we'd be more careful. 
+    // Here we trust Scene shutdown or clear.
+    // For this single-scene setup, we should destroy old zones before redrawing.
+    // (Added Logic Below)
+    if (!scenePtr.activeZones) scenePtr.activeZones = [];
+    scenePtr.activeZones.push(zone);
+  }
+
+  // Hook into drawBoard to clear zones first
+  const originalDraw = drawBoard;
+  drawBoard = function() {
+      if(scenePtr && scenePtr.activeZones) {
+          scenePtr.activeZones.forEach(z => z.destroy());
+          scenePtr.activeZones = [];
+      }
+      originalDraw();
+  }
+
+  // --- CLAIM LOGIC ---
+  function attemptClaim(edgeId) {
+    if(!roomData || roomData.turnUid !== myUid) return;
+    const dice = roomData.dice || {rem:0};
+    if(dice.rem <= 0) return alert("Roll dice first!");
+
+    db.ref(`rooms/${currentRoom}`).transaction(curr => {
+      if(!curr || curr.turnUid !== myUid) return;
+      if(curr.edges && curr.edges[edgeId]) return; // Taken
+      if(!curr.dice || curr.dice.rem <= 0) return;
+
+      if(!curr.edges) curr.edges = {};
+      curr.edges[edgeId] = { owner: curr.players[myUid].color };
+      curr.dice.rem -= 1;
+
+      // Check Boxes
+      let gained = 0;
+      if(!curr.boxes) curr.boxes = {};
+      if(!curr.scores) curr.scores = {red:0, blue:0};
+
+      const parts = edgeId.split('_');
+      const r = parseInt(parts[1]), c = parseInt(parts[2]);
+      
+      const checkBox = (br, bc) => {
+         if(br < 0 || bc < 0 || br >= curr.grid.rows || bc >= curr.grid.cols) return;
+         if(curr.boxes[`${br}_${bc}`]) return; // Already claimed
+         
+         const e = curr.edges;
+         if(e[`h_${br}_${bc}`] && e[`h_${br+1}_${bc}`] && e[`v_${br}_${bc}`] && e[`v_${br}_${bc+1}`]) {
+            curr.boxes[`${br}_${bc}`] = curr.players[myUid].color;
+            curr.scores[curr.players[myUid].color]++;
+            gained++;
+         }
+      };
+
+      if(parts[0] === 'h') {
+        checkBox(r, c);       // below
+        checkBox(r-1, c);     // above
+      } else {
+        checkBox(r, c);       // right
+        checkBox(r, c-1);     // left
+      }
+
+      if(gained > 0) {
+        // Bonus roll logic if desired, or just free move?
+        // Usually dots&boxes = free move (no dice). But since this is +Dice variant:
+        // Let's give +1 dice per box? Or just keep turn?
+        // User asked for "Dots & Boxes + Dice". Let's give bonus roll.
+        const bonus = Math.floor(Math.random()*6)+1;
+        curr.dice.val = bonus; // Show new roll
+        curr.dice.rem += bonus;
+      } else if(curr.dice.rem === 0) {
+         // Switch turn
+         const pIds = Object.keys(curr.players);
+         const other = pIds.find(id => id !== myUid);
+         if(other) curr.turnUid = other;
+         curr.dice.val = 0;
+      }
+
+      return curr;
+    });
+  }
+  </script>
 </body>
 </html>
